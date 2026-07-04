@@ -1,0 +1,41 @@
+/* Variables */
+$primary: #1d4ed8;
+$secondary: #facc15;
+$bg: #f9fafb;
+$card-radius: 0.75rem;
+
+/* Mixin for card */
+@mixin card {
+  background: #fff;
+  border-radius: $card-radius;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  border: 2px solid $secondary;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: $primary;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+	transform: scale(1.03);
+  }
+}
+
+@mixin button {
+padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid #ccc;
+      background: #f9f9f9;
+      cursor: pointer;
+	  }
+
+/* Global styles */
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: $bg;
+  color: #111;
+}
+
+h1, h2, h3 {
+  color: $primary;
+}

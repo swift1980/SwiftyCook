@@ -1,0 +1,86 @@
+import { defineStore } from 'pinia';
+import api from '@/services/api';
+import type { RecipeCreateDto } from "../interfaces/recipe";
+import type { RecipeDto } from "../interfaces/recipe";
+import type { RecipeIngredientCreateDto } from "../interfaces/recipeingredient";
+import type { RecipeInstructionCreateDto } from "../interfaces/recipeinstruction";
+import type { RecipeIngredientDto } from "../interfaces/recipeingredient";
+import type { RecipeInstructionDto } from "../interfaces/recipeinstruction";
+
+export const useCocktailStore = defineStore('cocktail', {
+  state: () => ({
+    cocktail: null as RecipeDto | null,
+    cocktails: [] as RecipeDto[],
+    error: null as string | null,
+    loading: false,
+  }),
+
+  getters: {
+    getFilteredCocktails: (state) => (nameQ: string, ingList: string[]) => {
+      return state.cocktails.filter(cocktail => {
+        // Match cocktail name
+        const nameMatch = nameQ
+          ? cocktail.name.toLowerCase().includes(nameQ.toLowerCase())
+          : true
+
+        // Match any ingredient
+        const ingredientMatch = ingList.length
+          ? ingList.every(query =>
+            cocktail.ingredients.some(ing =>
+              ing.ingredientName.toLowerCase().includes(query.toLowerCase())
+            )
+          )
+          : true
+
+        return nameMatch && ingredientMatch
+      })
+    }
+  },
+
+  actions: {
+    async searchCocktails(query: string) {
+      this.loading = true;
+      this.error = null;
+      try {
+        const res = await api.get<RecipeDto[]>(`/cocktail/search?q=${encodeURIComponent(query)}`);
+        this.cocktails = res.data;
+      } catch (err: any) {
+        this.error = err.message || 'Failed to search for cocktail';
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async fetchCocktailAll() {
+      this.loading = true;
+      try {
+        const res = await api.get<RecipeDto[]>('/cocktail');
+        this.cocktails = res.data;
+      } catch (err: any) {
+        this.error = err.message || 'Failed to fetch all cocktails';
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async fetchCocktail(id: number) {
+      this.loading = true;
+      this.error = null;
+      try {
+        const res = await api.get<RecipeDto>(`/cocktail/${id}`);
+        this.cocktail = res.data;
+      } catch (err: any) {
+        this.error = err.message || 'Failed to fetch cocktail';
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    reset() {
+      this.cocktail = null;
+      this.cocktails = [];
+      this.error = null;
+      this.loading = false;
+    },
+  },
+});

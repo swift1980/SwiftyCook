@@ -1,0 +1,12 @@
+/* _mixins.scss */
+$primary-color: #1d4ed8;
+$secondary-color: black;
+
+@mixin card {
+  @apply bg-white shadow rounded-lg p-4;
+  border: 2px solid $secondary-color;
+  transition: all 0.2s;
+  &:hover {
+    border-color: $primary-color;
+  }
+}

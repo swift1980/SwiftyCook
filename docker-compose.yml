@@ -1,0 +1,46 @@
+services:
+  swiftcookui:
+    build: ./swiftcookui
+    ports:
+      - "8080:80"
+    environment:
+      - API_URL=${API_URL}
+    depends_on:
+      - swiftcookapi
+
+  swiftcookapi:
+    build:
+      context: .
+      dockerfile: swiftcookapi/Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_URLS=http://+:5000
+      - DB_HOST=mariadb
+      - DB_USER=swiftchef
+      - DB_PASSWORD=GL@D0s
+      - DB_NAME=swiftcookdb
+    depends_on:
+      - mariadb
+
+  mariadb:
+    image: mariadb:latest
+    container_name: swiftcook-mariadb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: C@k31S4713
+      MYSQL_DATABASE: swiftcookdb
+      MYSQL_USER: swiftchef
+      MYSQL_PASSWORD: GL@D0s
+    ports:
+      - "13306:3306"
+    volumes:
+      # Schema + seed scripts (always mounted, only run if DB is new)
+      - ./swiftcookdb/init.sql:/docker-entrypoint-initdb.d/1-init.sql
+      - ./swiftcookdb/seeds/1-Unit.sql:/docker-entrypoint-initdb.d/2-units.sql
+      - ./swiftcookdb/seeds/2-IngredientType.sql:/docker-entrypoint-initdb.d/3-ingredienttype.sql
+      - ./swiftcookdb/seeds/3-Category.sql:/docker-entrypoint-initdb.d/4-category.sql
+      - ./swiftcookdb/seeds/4-Tag.sql:/docker-entrypoint-initdb.d/5-tags.sql
+      - ./swiftcookdb/seeds/5-Ingredient.sql:/docker-entrypoint-initdb.d/6-ingredient.sql
+      - ./swiftcookdb/seeds/6-Cocktails.sql:/docker-entrypoint-initdb.d/7-cocktail.sql
+      - ./swiftcookdb/seeds/7-Tool.sql:/docker-entrypoint-initdb.d/8-tool.sql

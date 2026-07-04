@@ -1,0 +1,135 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap');
+
+* {
+    padding: 0;
+    margin: 0;
+    font-family: "Poppins", sans-serif;
+}
+
+body {
+    background-image: url('./bg.jpg');
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+
+}
+
+.main {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.container {
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 30px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.inputs {
+    display: flex;
+    flex-direction: column;
+}
+
+input {
+    font-size: 1em;
+    width: 400px;
+    background-color: transparent;
+    padding: 0.6em 0.3em;
+    border: none;
+    outline: none;
+    color: #1f194c;
+    text-align: center;
+    border-bottom: 1.5px solid #1f194c;
+    margin: 10px;
+}
+
+input:focus {
+    border-color: #5372f0;
+}
+
+button {
+    font-size: 1em;
+    padding: 9px 15px;
+    background-color: #5372f0;
+    border: none;   
+    outline: none;
+    color: #ffffff;
+    cursor: pointer;
+}
+
+#result {
+    color: #575a7b;
+    line-height: 2em;
+    width: 500px;
+}
+
+#result img {
+    display: block;
+    max-width: 12.5em;
+    margin: auto;
+}
+
+#result h2 {
+    font-size: 1.25em;
+    margin: 0.8em 0 1.6em 0;
+    text-align: center;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: #1f194c;
+    position: relative;
+}
+
+#result h2:before {
+    content: "";
+    position: absolute;
+    width: 15%;
+    height: 3px;
+    background-color: #5372f0;
+    left: 42.5%;
+    bottom: -0.3em;
+}
+
+#result h3 {
+    font-size: 1.1em;
+    font-weight: 600;
+    margin-bottom: 0.2em;
+    color: #1f194c;
+}
+
+#result ul {
+    margin-bottom: 1em;
+    margin-left: 1.8em;
+    display: grid;
+    grid-template-columns: auto auto;
+}
+
+#result li {
+    margin-bottom: 0.3em;
+}
+
+#result p {
+    text-align: justify;
+    font-weight: 400;
+    font-size: 0.95em;
+}
+
+#result button {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.msg {
+    text-align: center;
+}
+
+@media screen and (max-width: 600px) {
+    .container {
+        font-size: 14px;
+    }
+}

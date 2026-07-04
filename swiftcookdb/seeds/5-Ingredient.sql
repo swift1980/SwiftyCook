@@ -1,0 +1,40 @@
+-- =========================================================
+-- SwiftCook Script
+-- Inserts Ingredient reference data if not already present
+-- Safe to run multiple times
+-- =========================================================
+INSERT IGNORE INTO Ingredient (Id, Name, PluralName) VALUES
+(1, 'Egg', 'Eggs'),
+(2, 'Milk', 'Milk'),
+(3, 'Butter', 'Butter'),
+(4, 'Cheese', 'Cheeses'),
+(5, 'Flour', 'Flours'),
+(6, 'Sugar', 'Sugars'),
+(7, 'Salt', 'Salts'),
+(8, 'Pepper', 'Peppers'),
+(9, 'Garlic', 'Garlic'),
+(10, 'Onion', 'Onions'),
+(11, 'Tomato', 'Tomatoes'),
+(12, 'Potato', 'Potatoes'),
+(13, 'Carrot', 'Carrots'),
+(14, 'Chicken Breast', 'Chicken Breasts'),
+(15, 'Beef', 'Beef'),
+(16, 'Pork', 'Pork'),
+(17, 'Fish', 'Fish'),
+(18, 'Rice', 'Rice'),
+(19, 'Pasta', 'Pasta'),
+(20, 'Olive Oil', ''),
+(21,'Bourbon', ''),
+(22,'Sugar cube', 'Sugar cubes'),
+(23,'Angostura bitters', ''),
+(24,'Orange peel', 'Orange peels'),
+(25,'Tequila', ''),
+(26,'Triple sec', ''),
+(27,'Lime juice', ''),
+(28,'White rum', ''),
+(29,'Mint leaf', 'Mint leaves'),
+(30,'Soda water', ''),
+(31,'Gin', ''),
+(32,'Campari', ''),
+(33,'Sweet vermouth', ''),
+(34,'Orange slice', 'Orange slices');
