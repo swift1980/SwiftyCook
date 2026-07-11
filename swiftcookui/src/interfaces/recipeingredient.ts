@@ -4,6 +4,7 @@ export interface RecipeIngredientDto {
   recipeId: number
   ingredientId: number
   ingredientName: string
+  ingredientTypeId?: number
   amount: number | null
   unit?: UnitDto
   position: number

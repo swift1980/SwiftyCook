@@ -19,7 +19,7 @@
   const props = defineProps({
     nameQuery: { type: String, default: '' },
     ingredientList: { type: Array as () => string[], default: () => [] },
-    matchMode: type: { String as () => 'and' | 'or', default: 'and' },
+    matchMode: { type: String as () => 'and' | 'or', default: 'and' },
     selectedCategoryIds: { type: Array as () => number[], default: () => [] }
   })
 
