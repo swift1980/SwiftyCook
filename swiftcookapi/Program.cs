@@ -3,11 +3,11 @@ using SwiftCookDb;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Register EF Core DbContext
+// Register EF Core DbContext (Pomelo provider targeting MariaDB)
 builder.Services.AddDbContext<SwiftCookDbContext>(options =>
     options.UseMySql(
         builder.Configuration.GetConnectionString("SwiftCookDatabase"),
-        ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("SwiftCookDatabase"))));
+        new MariaDbServerVersion(new Version(11, 4, 0))));
 
 builder.Services.AddControllers();
 
@@ -25,6 +25,8 @@ builder.Services.AddCors(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddAutoMapper(typeof(MappingProfile));
+builder.Services.AddScoped<swiftcookapi.Services.IRecipeIngredientSearchService,
+    swiftcookapi.Services.RecipeIngredientSearchService>();
 
 var app = builder.Build();
 

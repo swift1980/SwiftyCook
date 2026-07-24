@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SwiftCookDb;
 using SwiftCookDb.Models;
+using swiftcookapi.Services;
 
 namespace swiftcookapi.Controllers
 {
@@ -12,11 +13,16 @@ namespace swiftcookapi.Controllers
     {
         private readonly SwiftCookDbContext _context;
         private readonly IMapper _mapper;
+        private readonly IRecipeIngredientSearchService _ingredientSearchService;
 
-        public RecipeController(SwiftCookDbContext context, IMapper mapper)
+        public RecipeController(
+            SwiftCookDbContext context,
+            IMapper mapper,
+            IRecipeIngredientSearchService ingredientSearchService)
         {
             _context = context;
             _mapper = mapper;
+            _ingredientSearchService = ingredientSearchService;
         }
 
         [HttpGet]
@@ -171,6 +177,24 @@ namespace swiftcookapi.Controllers
             _context.Recipes.Remove(recipe);
             await _context.SaveChangesAsync();
             return NoContent();
+        }
+
+        [HttpPost("search/ingredients")]
+        [ProducesResponseType(typeof(PagedResultDto<RecipeSearchResultDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<PagedResultDto<RecipeSearchResultDto>>> SearchByIngredients(
+            [FromBody] RecipeIngredientSearchRequestDto request,
+            CancellationToken cancellationToken)
+        {
+            if (request == null)
+                return BadRequest("Request body is required.");
+
+            var outcome = await _ingredientSearchService.SearchAsync(request, cancellationToken);
+
+            if (!outcome.IsValid)
+                return BadRequest(outcome.Error);
+
+            return Ok(outcome.Result);
         }
     }
 
