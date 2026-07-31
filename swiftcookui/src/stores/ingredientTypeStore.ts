@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import api from '@/services/api';
 import type { IngredientTypeDto } from '../interfaces/ingredientType';
 import type { IngredientTypeCreateDto } from '../interfaces/ingredientType';
-import type { IngredientDto } from '../interfaces/ingredient'; }
+import type { IngredientDto } from '../interfaces/ingredient';
 
 export const useIngredientTypeStore = defineStore('ingredientType', {
   state: () => ({

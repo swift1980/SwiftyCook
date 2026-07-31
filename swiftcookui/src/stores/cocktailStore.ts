@@ -16,16 +16,16 @@ export const useCocktailStore = defineStore('cocktail', {
   }),
 
   getters: {
-    getFilteredCocktails: (state) => (nameQ: string, ingList: string[]) => {
+    getFilteredCocktails: (state) => (nameQ: string, ingList: string[], matchMode: 'and' | 'or' = 'and') => {
       return state.cocktails.filter(cocktail => {
         // Match cocktail name
         const nameMatch = nameQ
           ? cocktail.name.toLowerCase().includes(nameQ.toLowerCase())
           : true
 
-        // Match any ingredient
+        // Match ingredients: 'and' requires every query to match, 'or' requires any
         const ingredientMatch = ingList.length
-          ? ingList.every(query =>
+          ? (matchMode === 'or' ? ingList.some : ingList.every).call(ingList, query =>
             cocktail.ingredients.some(ing =>
               ing.ingredientName.toLowerCase().includes(query.toLowerCase())
             )

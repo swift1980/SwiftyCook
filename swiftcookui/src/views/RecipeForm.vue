@@ -202,7 +202,7 @@ const submitForm = async () => {
 		}
 		else
 		{
-		  const newIng = await ingredientStore.createIngredient({ name: ri.ingredientName, pluralName: '', description: '' })
+		  const newIng = await ingredientStore.createIngredient({ name: ri.ingredientName, pluralName: '' })
 		  ri.ingredientId = newIng.id
 		  ingredients.value.push(newIng)
 		}
