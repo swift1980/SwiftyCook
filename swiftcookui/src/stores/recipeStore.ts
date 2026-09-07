@@ -16,27 +16,20 @@ export const useRecipeStore = defineStore('recipe', {
   }),
   
   getters: {
-    getFilteredRecipes: (state) => (nameQ: string, ingList: string[], matchMode: 'and' | 'or' = 'and') => {
-      return state.recipes.filter(recipe => {
-        // Match recipe name
-        const nameMatch = nameQ
-          ? recipe.name.toLowerCase().includes(nameQ.toLowerCase())
-          : true
+    /** Filters the full recipe list by the ingredient-name tags (name search is server-side, see useNameSearch). */
+    filterByIngredients: (state) => (ingList: string[], matchMode: 'and' | 'or' = 'and') => {
+      if (!ingList.length) return state.recipes
 
-        const matchesIngredient = (query: string) =>
-          recipe.ingredients.some(ing =>
-            ing.ingredientName.toLowerCase().includes(query.toLowerCase())
-          )
+      const matchesIngredient = (recipe: RecipeDto, query: string) =>
+        recipe.ingredients.some(ing =>
+          ing.ingredientName.toLowerCase().includes(query.toLowerCase())
+        )
 
-        // Match any ingredient
-        const ingredientMatch = ingList.length
-          ? (matchMode === 'or'
-            ? ingList.some(matchesIngredient)
-            : ingList.every(matchesIngredient))
-            : true
-
-        return nameMatch && ingredientMatch
-      })
+      return state.recipes.filter(recipe =>
+        matchMode === 'or'
+          ? ingList.some(q => matchesIngredient(recipe, q))
+          : ingList.every(q => matchesIngredient(recipe, q))
+      )
     }
   },
 

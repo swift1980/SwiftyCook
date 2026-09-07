@@ -71,6 +71,9 @@
                :search-results="ingredientSearch.results.value"
                :search-error="ingredientSearch.error.value"
                :search-loading="ingredientSearch.loading.value"
+               :name-search-results="nameSearch.results.value"
+               :name-search-error="nameSearch.error.value"
+               :name-search-loading="nameSearch.loading.value"
                @retry="retrySearch" />
       <ShoppingList v-if="current === 'shopping'" :query="query" />
       <MealPlanner v-if="current === 'planner'" :query="query" />
@@ -84,10 +87,11 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue'
+  import { ref, onMounted, watch } from 'vue'
   import { useCategoryStore } from '@/stores/categoryStore'
   import { storeToRefs } from 'pinia'
   import { useIngredientSearch } from '@/composables/useIngredientSearch'
+  import { useNameSearch } from '@/composables/useNameSearch'
   import Recipes from '@/views/Recipes.vue'
   import ShoppingList from '@/views/ShoppingList.vue'
   import MealPlanner from '@/views/MealPlanner.vue'
@@ -108,12 +112,20 @@
   const lastParams = ref<IngredientSearchParams | null>(null)
 
   const ingredientSearch = useIngredientSearch()
+  const nameSearch = useNameSearch()
 
   const categoryStore = useCategoryStore()
   const { categories } = storeToRefs(categoryStore)
 
   onMounted(() => {
     categoryStore.fetchActive()
+  })
+
+  let nameSearchTimeout: ReturnType<typeof setTimeout> | undefined
+
+  watch(nameQuery, (q) => {
+    if (nameSearchTimeout) clearTimeout(nameSearchTimeout)
+    nameSearchTimeout = setTimeout(() => nameSearch.search(q), 300)
   })
 
   function toggleAdvancedSearch() {
