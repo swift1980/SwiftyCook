@@ -10,11 +10,10 @@
     <aside :class="['sidebar', open ? 'open' : '']">
       <h1>SwiftCook</h1>
       <nav>
-        <button @click="$emit('update:current', 'recipes')" :class="{active: current==='recipes'}">Recipes</button>
-        <button @click="$emit('update:current', 'cocktails')" :class="{active: current==='cocktails'}">Cocktails</button>
-        <button @click="$emit('update:current', 'shopping')" :class="{active: current==='shopping'}">Shopping List</button>
-        <button @click="$emit('update:current', 'planner')" :class="{active: current==='planner'}">Meal Planner</button>
-		<button @click="$emit('update:current', 'recipeform')" :class="{active: current==='recipeform'}">Add Recipe</button>
+        <router-link to="/recipes" active-class="active">Recipes</router-link>
+        <router-link to="/shopping-list" active-class="active">Shopping List</router-link>
+        <router-link to="/planner" active-class="active">Meal Planner</router-link>
+        <router-link to="/recipes/new" active-class="active">Add Recipe</router-link>
       </nav>
     </aside>
   </div>
@@ -22,10 +21,9 @@
 
 <script setup>
 defineProps({
-  current: String,
   open: Boolean
 });
-defineEmits(['update:current', 'update:open']);
+defineEmits(['update:open']);
 </script>
 
 <style lang="scss" scoped>
@@ -51,13 +49,14 @@ defineEmits(['update:current', 'update:open']);
     margin-bottom: 1rem;
   }
 
-  button {
+  a {
     display: block;
     background: transparent;
     border: none;
     color: white;
     padding: 0.5rem;
     text-align: left;
+    text-decoration: none;
     cursor: pointer;
     margin-bottom: 0.25rem;
 

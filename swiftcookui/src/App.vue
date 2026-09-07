@@ -2,9 +2,7 @@
   <div class="app">
     <!-- Sidebar component -->
     <Sidebar
-      :current="current"
       :open="sidebarOpen"
-      @update:current="current = $event"
       @update:open="sidebarOpen = $event"
     />
 
@@ -19,7 +17,7 @@
     </button>
 
     <!-- Main panel -->
-	  <MainContent :current="current" />
+	  <MainContent />
   </div>
 </template>
 
@@ -28,7 +26,6 @@ import { ref } from 'vue';
 import Sidebar from './components/Sidebar.vue';
 import MainContent from './components/MainContent.vue';
 
-const current = ref('recipes');
 const sidebarOpen = ref(false);
 </script>
 
