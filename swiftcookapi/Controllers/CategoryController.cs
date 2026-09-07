@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SwiftCookDb;
@@ -10,7 +11,12 @@ namespace swiftcookapi.Controllers
     public class CategoryController : ControllerBase
     {
         private readonly SwiftCookDbContext _context;
-        public CategoryController(SwiftCookDbContext context) => _context = context;
+        private readonly IMapper _mapper;
+        public CategoryController(SwiftCookDbContext context, IMapper mapper)
+        {
+            _context = context;
+            _mapper = mapper;
+        }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CategoryDto>>> GetAll() =>
@@ -36,18 +42,20 @@ namespace swiftcookapi.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Category>> Create(Category category)
+        public async Task<ActionResult<CategoryDto>> Create(CategoryCreateDto dto)
         {
+            var category = _mapper.Map<Category>(dto);
             _context.Categories.Add(category);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = category.Id }, category);
+            return CreatedAtAction(nameof(GetById), new { id = category.Id }, _mapper.Map<CategoryDto>(category));
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, Category category)
+        public async Task<IActionResult> Update(int id, CategoryCreateDto dto)
         {
-            if (id != category.Id) return BadRequest();
-            _context.Entry(category).State = EntityState.Modified;
+            var category = await _context.Categories.FindAsync(id);
+            if (category == null) return NotFound();
+            _mapper.Map(dto, category);
             await _context.SaveChangesAsync();
             return NoContent();
         }

@@ -61,6 +61,8 @@ namespace swiftcookapi.Controllers
         [HttpGet("search")]
         public async Task<ActionResult<IEnumerable<Recipe>>> Search(string q)
         {
+            if (string.IsNullOrWhiteSpace(q)) return BadRequest("Query parameter 'q' is required.");
+
             return await _context.Recipes
                 .Where(r => r.Name.Contains(q) &&
                 !r.RecipeCategories.Any(rc => rc.CategoryId == 1))
@@ -161,10 +163,16 @@ namespace swiftcookapi.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, Recipe recipe)
+        public async Task<IActionResult> Update(int id, RecipeCreateDto dto)
         {
-            if (id != recipe.Id) return BadRequest();
-            _context.Entry(recipe).State = EntityState.Modified;
+            var recipe = await _context.Recipes.FindAsync(id);
+            if (recipe == null) return NotFound();
+
+            _mapper.Map(dto, recipe);
+            recipe.NameNormalized = recipe.Name.ToLowerInvariant();
+            recipe.DescriptionNormalized = recipe.Description?.ToLowerInvariant();
+            recipe.DateUpdated = DateTime.Now;
+
             await _context.SaveChangesAsync();
             return NoContent();
         }

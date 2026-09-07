@@ -34,18 +34,20 @@ namespace swiftcookapi.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Tag>> Create(Tag tag)
+        public async Task<ActionResult<TagDto>> Create(TagCreateDto dto)
         {
+            var tag = _mapper.Map<Tag>(dto);
             _context.Tags.Add(tag);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = tag.Id }, tag);
+            return CreatedAtAction(nameof(GetById), new { id = tag.Id }, _mapper.Map<TagDto>(tag));
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, Tag tag)
+        public async Task<IActionResult> Update(int id, TagCreateDto dto)
         {
-            if (id != tag.Id) return BadRequest();
-            _context.Entry(tag).State = EntityState.Modified;
+            var tag = await _context.Tags.FindAsync(id);
+            if (tag == null) return NotFound();
+            _mapper.Map(dto, tag);
             await _context.SaveChangesAsync();
             return NoContent();
         }

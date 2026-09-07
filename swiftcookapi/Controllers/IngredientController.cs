@@ -23,7 +23,7 @@ namespace swiftcookapi.Controllers
         public async Task<ActionResult<IEnumerable<IngredientDto>>> GetAll()
         {
             var ingredients = await _context.Ingredients
-                .Include(i => i.TypeId)
+                .Include(i => i.Type)
                 .ToListAsync();
             return _mapper.Map<List<IngredientDto>>(ingredients);
         }
@@ -57,8 +57,9 @@ namespace swiftcookapi.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<IngredientDto>> Create(Ingredient ingredient)
+        public async Task<ActionResult<IngredientDto>> Create(IngredientCreateDto dto)
         {
+            var ingredient = _mapper.Map<Ingredient>(dto);
             _context.Ingredients.Add(ingredient);
             await _context.SaveChangesAsync();
 
@@ -67,15 +68,16 @@ namespace swiftcookapi.Controllers
                 .Include(i => i.Type)
                 .FirstOrDefaultAsync(i => i.Id == ingredient.Id);
 
-            var dto = _mapper.Map<IngredientDto>(created);
-            return CreatedAtAction(nameof(GetById), new { id = ingredient.Id }, dto);
+            var result = _mapper.Map<IngredientDto>(created);
+            return CreatedAtAction(nameof(GetById), new { id = ingredient.Id }, result);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, Ingredient ingredient)
+        public async Task<IActionResult> Update(int id, IngredientCreateDto dto)
         {
-            if (id != ingredient.Id) return BadRequest();
-            _context.Entry(ingredient).State = EntityState.Modified;
+            var ingredient = await _context.Ingredients.FindAsync(id);
+            if (ingredient == null) return NotFound();
+            _mapper.Map(dto, ingredient);
             await _context.SaveChangesAsync();
             return NoContent();
         }

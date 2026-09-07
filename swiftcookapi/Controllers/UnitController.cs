@@ -34,18 +34,20 @@ namespace swiftcookapi.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Unit>> Create(Unit unit)
+        public async Task<ActionResult<UnitDto>> Create(UnitCreateDto dto)
         {
+            var unit = _mapper.Map<Unit>(dto);
             _context.Units.Add(unit);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = unit.Id }, unit);
+            return CreatedAtAction(nameof(GetById), new { id = unit.Id }, _mapper.Map<UnitDto>(unit));
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, Unit unit)
+        public async Task<IActionResult> Update(int id, UnitCreateDto dto)
         {
-            if (id != unit.Id) return BadRequest();
-            _context.Entry(unit).State = EntityState.Modified;
+            var unit = await _context.Units.FindAsync(id);
+            if (unit == null) return NotFound();
+            _mapper.Map(dto, unit);
             await _context.SaveChangesAsync();
             return NoContent();
         }

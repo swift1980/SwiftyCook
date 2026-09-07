@@ -34,18 +34,20 @@ namespace swiftcookapi.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Tool>> Create(Tool tool)
+        public async Task<ActionResult<ToolDto>> Create(ToolCreateDto dto)
         {
+            var tool = _mapper.Map<Tool>(dto);
             _context.Tools.Add(tool);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = tool.Id }, tool);
+            return CreatedAtAction(nameof(GetById), new { id = tool.Id }, _mapper.Map<ToolDto>(tool));
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, Tool tool)
+        public async Task<IActionResult> Update(int id, ToolCreateDto dto)
         {
-            if (id != tool.Id) return BadRequest();
-            _context.Entry(tool).State = EntityState.Modified;
+            var tool = await _context.Tools.FindAsync(id);
+            if (tool == null) return NotFound();
+            _mapper.Map(dto, tool);
             await _context.SaveChangesAsync();
             return NoContent();
         }

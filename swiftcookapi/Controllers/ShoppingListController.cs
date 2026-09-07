@@ -31,11 +31,18 @@ namespace swiftcookapi.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<ShoppingList>> Create(ShoppingList item)
+        public async Task<ActionResult<ShoppingListDto>> Create(ShoppingListCreateDto dto)
         {
+            var item = _mapper.Map<ShoppingList>(dto);
             _context.ShoppingLists.Add(item);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetAll), new { id = item.Id }, item);
+
+            var created = await _context.ShoppingLists
+                .Include(s => s.Ingredient)
+                .Include(s => s.Unit)
+                .FirstOrDefaultAsync(s => s.Id == item.Id);
+
+            return CreatedAtAction(nameof(GetAll), new { id = item.Id }, _mapper.Map<ShoppingListDto>(created));
         }
 
         [HttpDelete("{id}")]

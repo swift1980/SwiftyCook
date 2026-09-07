@@ -64,5 +64,21 @@ public class MappingProfile : Profile
 
         CreateMap<RecipeInstructionCreateDto, RecipeInstruction>()
             .ForMember(dest => dest.RecipeId, opt => opt.Ignore()); // avoid duplicate tracked entities
+
+        // Create/Update DTOs -> entities (prevents overposting: Id and navigation
+        // properties are never bound from client input)
+        CreateMap<CategoryCreateDto, Category>();
+        CreateMap<TagCreateDto, Tag>();
+        CreateMap<ToolCreateDto, Tool>();
+        CreateMap<IngredientTypeCreateDto, IngredientType>();
+        CreateMap<UnitCreateDto, Unit>();
+        CreateMap<IngredientCreateDto, Ingredient>()
+            .ForMember(dest => dest.Type, opt => opt.Ignore());
+        CreateMap<CupboardCreateDto, Cupboard>()
+            .ForMember(dest => dest.Ingredient, opt => opt.Ignore())
+            .ForMember(dest => dest.Unit, opt => opt.Ignore());
+        CreateMap<ShoppingListCreateDto, ShoppingList>()
+            .ForMember(dest => dest.Ingredient, opt => opt.Ignore())
+            .ForMember(dest => dest.Unit, opt => opt.Ignore());
     }
 }

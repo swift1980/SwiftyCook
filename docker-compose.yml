@@ -17,9 +17,10 @@ services:
     environment:
       - ASPNETCORE_URLS=http://+:5000
       - DB_HOST=mariadb
-      - DB_USER=swiftchef
-      - DB_PASSWORD=GL@D0s
-      - DB_NAME=swiftcookdb
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - Cors__AllowedOrigins__0=${API_CORS_ORIGIN:-http://localhost:8080}
     depends_on:
       - mariadb
 
@@ -28,10 +29,10 @@ services:
     container_name: swiftcook-mariadb
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: C@k31S4713
-      MYSQL_DATABASE: swiftcookdb
-      MYSQL_USER: swiftchef
-      MYSQL_PASSWORD: GL@D0s
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
       - "13306:3306"
     volumes:

@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SwiftCookDb;
@@ -10,7 +11,12 @@ namespace swiftcookapi.Controllers
     public class IngredientTypeController : ControllerBase
     {
         private readonly SwiftCookDbContext _context;
-        public IngredientTypeController(SwiftCookDbContext context) => _context = context;
+        private readonly IMapper _mapper;
+        public IngredientTypeController(SwiftCookDbContext context, IMapper mapper)
+        {
+            _context = context;
+            _mapper = mapper;
+        }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<IngredientTypeDto>>> GetAll() =>
@@ -48,18 +54,20 @@ namespace swiftcookapi.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<IngredientType>> Create(IngredientType type)
+        public async Task<ActionResult<IngredientTypeDto>> Create(IngredientTypeCreateDto dto)
         {
+            var type = _mapper.Map<IngredientType>(dto);
             _context.IngredientTypes.Add(type);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = type.Id }, type);
+            return CreatedAtAction(nameof(GetById), new { id = type.Id }, _mapper.Map<IngredientTypeDto>(type));
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, IngredientType type)
+        public async Task<IActionResult> Update(int id, IngredientTypeCreateDto dto)
         {
-            if (id != type.Id) return BadRequest();
-            _context.Entry(type).State = EntityState.Modified;
+            var type = await _context.IngredientTypes.FindAsync(id);
+            if (type == null) return NotFound();
+            _mapper.Map(dto, type);
             await _context.SaveChangesAsync();
             return NoContent();
         }
