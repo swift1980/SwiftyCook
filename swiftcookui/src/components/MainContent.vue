@@ -1,6 +1,6 @@
 <template>
   <main class="main">
-    <div v-if="current != 'recipeform'" class="search-section">
+    <div v-if="route.name !== 'RecipeForm'" class="search-section">
       <div class="search-bar">
         <input v-model="nameQuery" type="text" placeholder="Search by recipe name" />
         <div class="ingredient-input-wrapper">
@@ -24,7 +24,7 @@
       </div>
 
       <div class="filter-controls">
-        <button v-if="current === 'recipes'" class="category-btn" @click="toggleCategories">
+        <button v-if="route.name === 'Recipes'" class="category-btn" @click="toggleCategories">
           Categories
         </button>
         <button class="advanced-btn" @click="toggleAdvancedSearch">
@@ -64,46 +64,28 @@
     </div>
 
     <div class="content">
-      <Recipes v-if="current === 'recipes'"
-               :name-query="nameQuery"
-               :ingredient-list="ingredientList"
-               :selected-category-ids="selectedCategoryIds"
-               :search-results="ingredientSearch.results.value"
-               :search-error="ingredientSearch.error.value"
-               :search-loading="ingredientSearch.loading.value"
-               :name-search-results="nameSearch.results.value"
-               :name-search-error="nameSearch.error.value"
-               :name-search-loading="nameSearch.loading.value"
-               @retry="retrySearch" />
-      <ShoppingList v-if="current === 'shopping'" :query="query" />
-      <MealPlanner v-if="current === 'planner'" :query="query" />
-      <Cocktails v-if="current === 'cocktails'"
-                 :name-query="nameQuery"
-                 :ingredient-list="ingredientList"
-                 :selected-category-ids="[1]" />
-      <RecipeForm v-if="current === 'recipeform'" />
+      <router-view v-slot="{ Component }">
+        <component :is="Component"
+                   v-bind="route.name === 'Recipes' ? recipesProps : {}"
+                   v-on="route.name === 'Recipes' ? { retry: retrySearch } : {}" />
+      </router-view>
     </div>
   </main>
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, watch } from 'vue'
+  import { ref, computed, onMounted, watch } from 'vue'
+  import { useRoute } from 'vue-router'
   import { useCategoryStore } from '@/stores/categoryStore'
   import { storeToRefs } from 'pinia'
   import { useIngredientSearch } from '@/composables/useIngredientSearch'
   import { useNameSearch } from '@/composables/useNameSearch'
-  import Recipes from '@/views/Recipes.vue'
-  import ShoppingList from '@/views/ShoppingList.vue'
-  import MealPlanner from '@/views/MealPlanner.vue'
-  import Cocktails from '@/views/Cocktails.vue'
-  import RecipeForm from '@/views/RecipeForm.vue'
   import AdvancedSearch from '@/components/AdvancedSearch.vue'
   import type { IngredientSearchParams } from '@/interfaces/ingredientSearch'
 
-  defineProps({ current: String })
+  const route = useRoute()
 
   const nameQuery = ref('')
-  const query = ref('')
   const ingredientInput = ref('')
   const ingredientList = ref<string[]>([])
   const showAdvancedSearch = ref(false)
@@ -164,6 +146,18 @@
   function retrySearch() {
     if (lastParams.value) ingredientSearch.search(lastParams.value, 1)
   }
+
+  const recipesProps = computed(() => ({
+    nameQuery: nameQuery.value,
+    ingredientList: ingredientList.value,
+    selectedCategoryIds: selectedCategoryIds.value,
+    searchResults: ingredientSearch.results.value,
+    searchError: ingredientSearch.error.value,
+    searchLoading: ingredientSearch.loading.value,
+    nameSearchResults: nameSearch.results.value,
+    nameSearchError: nameSearch.error.value,
+    nameSearchLoading: nameSearch.loading.value,
+  }))
 </script>
 
 <style lang="scss" scoped>
