@@ -59,14 +59,23 @@ namespace swiftcookapi.Controllers
         }
 
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<Recipe>>> Search(string q)
+        public async Task<ActionResult<IEnumerable<RecipeReadDto>>> Search(string q)
         {
             if (string.IsNullOrWhiteSpace(q)) return BadRequest("Query parameter 'q' is required.");
 
-            return await _context.Recipes
+            var recipes = await _context.Recipes
+                .Include(r => r.RecipeCategories).ThenInclude(rc => rc.Category)
+                .Include(r => r.RecipeTags).ThenInclude(rt => rt.Tag)
+                .Include(r => r.RecipeTools).ThenInclude(rt => rt.Tool)
+                .Include(r => r.RecipeIngredients).ThenInclude(ri => ri.Ingredient)
+                .Include(r => r.RecipeIngredients).ThenInclude(ri => ri.Unit)
+                .Include(r => r.Instructions)
+                .Include(r => r.Nutrition)
                 .Where(r => r.Name.Contains(q) &&
                 !r.RecipeCategories.Any(rc => rc.CategoryId == 1))
                 .ToListAsync();
+
+            return _mapper.Map<List<RecipeReadDto>>(recipes);
         }
 
         [HttpPost]
