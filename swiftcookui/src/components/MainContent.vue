@@ -66,7 +66,7 @@
     <div class="content">
       <router-view v-slot="{ Component }">
         <component :is="Component"
-                   v-bind="route.name === 'Recipes' ? recipesProps : {}"
+                   v-bind="routeProps"
                    v-on="route.name === 'Recipes' ? { retry: retrySearch } : {}" />
       </router-view>
     </div>
@@ -158,6 +158,17 @@
     nameSearchError: nameSearch.error.value,
     nameSearchLoading: nameSearch.loading.value,
   }))
+
+  const cocktailsProps = computed(() => ({
+    nameQuery: nameQuery.value,
+    ingredientList: ingredientList.value,
+  }))
+
+  const routeProps = computed(() => {
+    if (route.name === 'Recipes') return recipesProps.value
+    if (route.name === 'Cocktails') return cocktailsProps.value
+    return {}
+  })
 </script>
 
 <style lang="scss" scoped>
