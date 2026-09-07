@@ -54,6 +54,12 @@
 
     <div class="advanced-search__actions">
       <button type="button"
+              class="cupboard-btn"
+              :disabled="cupboardStore.loading"
+              @click="useCupboard">
+        Use my cupboard
+      </button>
+      <button type="button"
               class="search-btn"
               :disabled="!canSearch"
               :class="{ 'search-btn--dirty': isDirty }"
@@ -68,6 +74,7 @@
 <script setup lang="ts">
   import { reactive, ref, computed, watch, onMounted } from 'vue'
   import { useIngredientStore } from '@/stores/ingredientStore'
+  import { useCupboardStore } from '@/stores/cupboardStore'
   import type { IngredientSearchParams } from '@/interfaces/ingredientSearch'
 
   const emit = defineEmits<{
@@ -76,6 +83,7 @@
   }>()
 
   const ingredientStore = useIngredientStore()
+  const cupboardStore = useCupboardStore()
 
   interface SelectedIngredient {
     id: number
@@ -166,6 +174,20 @@
       // Clamp threshold after toggling
       const max = optionalIngredients.value.length
       if (threshold.value > max) threshold.value = max
+    }
+  }
+
+  /** Prefills the optional ingredient list from the user's cupboard contents (Amount is ignored - presence-only). */
+  async function useCupboard() {
+    if (!ingredientStore.ingredients.length) await ingredientStore.fetchAll()
+    if (!cupboardStore.items.length) await cupboardStore.fetchAll()
+
+    for (const item of cupboardStore.items) {
+      if (item.ingredientId in selectedMap) continue
+      // Only add ingredients we can resolve a type for, so they render in a type box
+      const known = ingredientStore.ingredients.some((i) => i.id === item.ingredientId)
+      if (!known) continue
+      selectedMap[item.ingredientId] = { id: item.ingredientId, name: item.ingredientName, mandatory: false }
     }
   }
 
@@ -346,6 +368,25 @@
 
       &:hover {
         background: #f5f5f5;
+      }
+    }
+
+    .cupboard-btn {
+      font-size: 0.85rem;
+      padding: 4px 10px;
+      border: 1px solid #2d6a2d;
+      border-radius: 4px;
+      background: none;
+      cursor: pointer;
+      color: #2d6a2d;
+
+      &:hover {
+        background: #e8f4e8;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
       }
     }
   }
