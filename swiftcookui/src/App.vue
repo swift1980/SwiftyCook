@@ -21,7 +21,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
 import Sidebar from './components/Sidebar.vue';
 import MainContent from './components/MainContent.vue';

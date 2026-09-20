@@ -155,3 +155,101 @@ b85ff59 Wire recipe name search to backend /recipe/search endpoint
   gaps; flagged as a separate concern discovered during Ticket 4.
 - Rotating git-history-committed secrets, CI workflow — carried over from
   the earlier `REVIEW.md` review, still open.
+
+---
+
+## Backlog v2 (regenerated) — Tickets 1-3
+
+Implemented in a single session (no branch/commit split — see git log for
+this session's commits). Verified with:
+- Backend: `dotnet build` (0 errors) and
+  `dotnet test swiftcookapi.tests\swiftcookapi.tests.csproj` (11/11 passing)
+- Frontend: `npm run lint` (0 errors, previously 60) and `npm run build`
+  (`vue-tsc --build` + `vite build`, 0 errors)
+
+### Ticket 1 — Wire Shopping List to its existing backend
+
+**Closes:** Shopping List sidebar/route being a hardcoded fake stub.
+
+- `swiftcookui/src/interfaces/shoppingList.ts` (new) — `ShoppingListDto` /
+  `ShoppingListCreateDto`.
+- `swiftcookui/src/stores/shoppingListStore.ts` (new) — `fetchAll` /
+  `addItem` / `removeItem` against `GET`/`POST`/`DELETE /shoppinglist`.
+  Deliberately **not** an ingredient-keyed upsert like `cupboardStore` —
+  the backend keys shopping list rows by auto-increment `Id`
+  (`ShoppingListController.Delete(int id)`), so duplicate ingredient rows
+  are allowed by design; every add appends, every remove targets a
+  specific row.
+- `swiftcookui/src/views/ShoppingList.vue` — replaced the hardcoded
+  `['Milk', 'Eggs', ...]` array with a real ingredient/unit/amount picker
+  + list + remove buttons, mirroring `Cupboard.vue`.
+
+### Ticket 2 — Remove the Meal Planner stub
+
+**Decision (user-confirmed):** descope rather than build a new backend
+domain for it.
+
+- Removed `swiftcookui/src/views/MealPlanner.vue`.
+- Removed the `/planner` route from `swiftcookui/src/router/index.ts`.
+- Removed the "Meal Planner" nav link from `Sidebar.vue`.
+
+### Ticket 3 — CI workflow
+
+- Added `.github/workflows/ci.yml`: `backend` job (.NET 9.0.x — build +
+  test) and `frontend` job (Node 20.x — `npm ci`, `npm run lint`,
+  `npm run build`), matching the versions pinned in each service's
+  `Dockerfile`. Triggers on `pull_request` (any branch) and `push` to
+  `master`. No DB service needed — the backend test suite uses an
+  in-memory SQLite context (`RecipeIngredientSearchTestContextFactory.cs`),
+  not the real MariaDB.
+
+### Pre-existing lint cleanup (surfaced by adding `npm run lint` to CI)
+
+Enabling the existing-but-unused `npm run lint` script for CI surfaced 60
+pre-existing errors, all fixed in this session so CI starts green:
+
+- **`@typescript-eslint/no-explicit-any`** (most of the errors): replaced
+  `catch (err: any)` with `catch (err: unknown)` across all Pinia stores,
+  using a new shared helper `swiftcookui/src/utils/errors.ts`
+  (`getErrorMessage(err, fallback)`) instead of unsafe `err.message`
+  access. The two ingredient/name-search composables now use
+  `axios.isAxiosError(err)` instead of `any` to narrow the 400-response
+  case. Untyped `any[]` store state (`categoryStore`, `tagStore`,
+  `toolStore`, `unitStore`) was given real DTOs — added
+  `interfaces/category.ts` and `interfaces/tag.ts`/`interfaces/tool.ts`
+  (didn't exist before) and extended `interfaces/unit.ts` with
+  `UnitCreateDto`.
+- **`@typescript-eslint/no-unused-vars`**: removed dead imports
+  (`cocktailStore.ts`, `recipeStore.ts`), an unused `ref` import
+  (`RecipeForm.vue`), and unused `props` locals (`CardGrid.vue`,
+  `RecipeCard.vue`, where `defineProps` return value was never read —
+  template already consumes props directly). Also fixed
+  `tagStore.createTag` / `toolStore.createTool` / `unitStore.createUnit`,
+  whose parameters were flagged unused because the POST calls never
+  actually sent them as the request body (`api.post('/tag/post')` with no
+  payload) — a real bug tightly coupled to the lint fix, now sends the
+  typed DTO as the body.
+- **`vue/multi-word-component-names`**: added `defineOptions({ name: '...'
+  })` with a multi-word name to `Sidebar.vue`, `Cocktails.vue`,
+  `Cupboard.vue`, `Recipes.vue` rather than renaming files/routes.
+- **`vue/block-lang`**: added `lang="ts"` to `<script setup>` blocks that
+  had none (`App.vue`, `Sidebar.vue`, `CardGrid.vue`, `RecipeCard.vue`,
+  root-level `PanelExample.vue`, an unused example file). This newly
+  exposed real type errors in `CardGrid.vue` under `vue-tsc` (an
+  undefined `skeleton` template reference used as a `:key`, and an
+  untyped `items` prop) — fixed by keying the skeleton placeholder with a
+  static string and typing `items`/`selectedRecipe` as
+  `RecipeCardItem[]`/`RecipeCardItem | null` (a type that already existed
+  for exactly this shape) instead of `Array`/`any`.
+- **`@typescript-eslint/no-empty-object-type`**: `src/shims-vue.d.ts`'s
+  generated `DefineComponent<{}, {}, any>` module shim was left as-is with
+  a scoped `eslint-disable` comment rather than changed, since altering
+  its generic types risked changing type inference for every `.vue` import
+  project-wide for no functional benefit.
+
+### Explicitly out of scope (deferred, per this session's decisions)
+
+- Ticket 4 (Vitest + initial store/composable tests) — not implemented
+  this session; user chose to limit scope to Tickets 1-3.
+- Building a real Meal Planner backend/frontend — descoped instead (see
+  Ticket 2 above); left as a future ticket if the feature is wanted.

@@ -34,6 +34,8 @@
     nameSearchLoading: { type: Boolean, default: false },
   })
 
+  defineOptions({ name: 'RecipesView' })
+
   const emit = defineEmits<{ (e: 'retry'): void }>()
 
   const recipeStore = useRecipeStore()

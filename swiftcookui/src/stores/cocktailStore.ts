@@ -1,11 +1,7 @@
 import { defineStore } from 'pinia';
 import api from '@/services/api';
-import type { RecipeCreateDto } from "../interfaces/recipe";
 import type { RecipeDto } from "../interfaces/recipe";
-import type { RecipeIngredientCreateDto } from "../interfaces/recipeingredient";
-import type { RecipeInstructionCreateDto } from "../interfaces/recipeinstruction";
-import type { RecipeIngredientDto } from "../interfaces/recipeingredient";
-import type { RecipeInstructionDto } from "../interfaces/recipeinstruction";
+import { getErrorMessage } from '@/utils/errors';
 
 export const useCocktailStore = defineStore('cocktail', {
   state: () => ({
@@ -44,8 +40,8 @@ export const useCocktailStore = defineStore('cocktail', {
       try {
         const res = await api.get<RecipeDto[]>(`/cocktail/search?q=${encodeURIComponent(query)}`);
         this.cocktails = res.data;
-      } catch (err: any) {
-        this.error = err.message || 'Failed to search for cocktail';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to search for cocktail');
       } finally {
         this.loading = false;
       }
@@ -56,8 +52,8 @@ export const useCocktailStore = defineStore('cocktail', {
       try {
         const res = await api.get<RecipeDto[]>('/cocktail');
         this.cocktails = res.data;
-      } catch (err: any) {
-        this.error = err.message || 'Failed to fetch all cocktails';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to fetch all cocktails');
       } finally {
         this.loading = false;
       }
@@ -69,8 +65,8 @@ export const useCocktailStore = defineStore('cocktail', {
       try {
         const res = await api.get<RecipeDto>(`/cocktail/${id}`);
         this.cocktail = res.data;
-      } catch (err: any) {
-        this.error = err.message || 'Failed to fetch cocktail';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to fetch cocktail');
       } finally {
         this.loading = false;
       }

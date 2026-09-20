@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import axios from 'axios'
 import api from '@/services/api'
 import type { RecipeDto } from '@/interfaces/recipe'
 
@@ -20,9 +21,9 @@ export function useNameSearch() {
     try {
       const response = await api.get<RecipeDto[]>('/recipe/search', { params: { q } })
       results.value = response.data
-    } catch (err: any) {
+    } catch (err: unknown) {
       results.value = null
-      if (err.response?.status === 400) {
+      if (axios.isAxiosError(err) && err.response?.status === 400) {
         error.value = err.response.data ?? 'Invalid search request.'
       } else {
         error.value = 'Failed to load results. Please try again.'

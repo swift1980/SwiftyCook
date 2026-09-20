@@ -14,14 +14,15 @@
         <router-link to="/cocktails" active-class="active">Cocktails</router-link>
         <router-link to="/shopping-list" active-class="active">Shopping List</router-link>
         <router-link to="/cupboard" active-class="active">Cupboard</router-link>
-        <router-link to="/planner" active-class="active">Meal Planner</router-link>
         <router-link to="/recipes/new" active-class="active">Add Recipe</router-link>
       </nav>
     </aside>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+defineOptions({ name: 'AppSidebar' })
+
 defineProps({
   open: Boolean
 });

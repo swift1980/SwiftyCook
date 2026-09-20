@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia';
 import api from '@/services/api';
+import type { CategoryDto } from '@/interfaces/category';
+import { getErrorMessage } from '@/utils/errors';
 
 export const useCategoryStore = defineStore('category', {
   state: () => ({
-    category: null as any | null,
-    categories: [] as any[],
+    category: null as CategoryDto | null,
+    categories: [] as CategoryDto[],
     error: null as string | null,
     loading: false,
   }),
@@ -14,10 +16,10 @@ export const useCategoryStore = defineStore('category', {
       this.loading = true;
       this.error = null;
       try {
-        const res = await api.get(`/category/search?q=${encodeURIComponent(query)}`);
+        const res = await api.get<CategoryDto[]>(`/category/search?q=${encodeURIComponent(query)}`);
         this.categories = res.data;
-      } catch (err: any) {
-        this.error = err.message || 'Failed to search for category';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to search for category');
       } finally {
         this.loading = false;
       }
@@ -26,10 +28,10 @@ export const useCategoryStore = defineStore('category', {
     async fetchAll() {
       this.loading = true;
       try {
-        const res = await api.get(`/category`);
+        const res = await api.get<CategoryDto[]>(`/category`);
         this.categories = res.data;
-      } catch (err: any) {
-        this.error = err.message || 'Failed to fetch all categories';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to fetch all categories');
       } finally {
         this.loading = false;
       }
@@ -38,10 +40,10 @@ export const useCategoryStore = defineStore('category', {
     async fetchActive() {
       this.loading = true;
       try {
-        const res = await api.get(`/category/active`);
+        const res = await api.get<CategoryDto[]>(`/category/active`);
         this.categories = res.data;
-      } catch (err: any) {
-        this.error = err.message || 'Failed to fetch active categories';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to fetch active categories');
       } finally {
         this.loading = false;
       }
@@ -51,10 +53,10 @@ export const useCategoryStore = defineStore('category', {
       this.loading = true;
       this.error = null;
       try {
-        const res = await api.get(`/category/${id}`);
+        const res = await api.get<CategoryDto>(`/category/${id}`);
         this.category = res.data;
-      } catch (err: any) {
-        this.error = err.message || 'Failed to fetch category';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to fetch category');
       } finally {
         this.loading = false;
       }

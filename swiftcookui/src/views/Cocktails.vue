@@ -9,6 +9,8 @@
   import { storeToRefs } from 'pinia'
   import CardGrid from '@/components/shared/CardGrid.vue'
 
+  defineOptions({ name: 'CocktailsView' })
+
   const cocktailStore = useCocktailStore();
   const { loading, error } = storeToRefs(cocktailStore);
 

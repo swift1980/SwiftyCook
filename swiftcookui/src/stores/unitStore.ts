@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia';
 import api from '@/services/api';
+import type { UnitDto, UnitCreateDto } from '@/interfaces/unit';
+import { getErrorMessage } from '@/utils/errors';
 
 export const useUnitStore = defineStore('unit', {
   state: () => ({
-    units: [] as any[],
+    units: [] as UnitDto[],
     error: null as string | null,
     loading: false,
   }),
@@ -12,7 +14,7 @@ export const useUnitStore = defineStore('unit', {
     async fetchAll() {
 		this.loading = true
       try {
-        const response = await api.get('/unit');
+        const response = await api.get<UnitDto[]>('/unit');
         this.units = response.data;
       } catch (err) {
         console.error('Failed to fetch units:', err);
@@ -21,15 +23,15 @@ export const useUnitStore = defineStore('unit', {
 	  }
     },
 	
-	async createUnit(unit: any) {
+	async createUnit(unit: UnitCreateDto) {
 		try {
-			const response = await api.post('/unit/post');
+			const response = await api.post<UnitDto>('/unit/post', unit);
 			this.units.push(response.data)
 			return response.data
 		}
-		catch (err: any)
+		catch (err: unknown)
 		{
-			this.error = err.message
+			this.error = getErrorMessage(err, 'Failed to create unit')
 			throw err
 		}
 	}

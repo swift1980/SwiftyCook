@@ -1,7 +1,7 @@
 <template>
   <transition-group name="card" tag="ul" class="grid">
     <!-- Show skeletons while loading -->
-	<div v-if="loading" :key="skeleton" class="card skeleton"></div>
+	<div v-if="loading" key="skeleton" class="card skeleton"></div>
 	
 	<!-- Show real data once loaded -->
     <div v-for="recipe in items" :key="recipe.id" class="card" @click="openRecipe(recipe)">
@@ -14,13 +14,14 @@
               @close="selectedRecipe = null" />
 </template>
 
-<script setup>
-  import { ref } from "vue"
+<script setup lang="ts">
+  import { ref, type PropType } from "vue"
   import RecipeCard from "./RecipeCard.vue"
+  import type { RecipeCardItem } from '@/interfaces/ingredientSearch'
 
-  const props = defineProps({
+  defineProps({
     items: {
-      type: Array,
+      type: Array as PropType<RecipeCardItem[]>,
       required: true
     },
 	loading: {
@@ -29,9 +30,9 @@
 	}
   });
 
-  const selectedRecipe = ref(null)
+  const selectedRecipe = ref<RecipeCardItem | null>(null)
 
-  function openRecipe(recipe) {
+  function openRecipe(recipe: RecipeCardItem) {
     selectedRecipe.value = recipe
   }
 </script>

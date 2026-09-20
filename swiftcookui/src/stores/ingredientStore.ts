@@ -3,6 +3,7 @@ import api from '@/services/api';
 import type { IngredientDto } from "../interfaces/ingredient";
 import type { IngredientCreateDto } from "../interfaces/ingredient";
 import type { IngredientTypeDto } from "../interfaces/ingredientType";
+import { getErrorMessage } from '@/utils/errors';
 
 export const useIngredientStore = defineStore('ingredient', {
   state: () => ({
@@ -63,8 +64,8 @@ export const useIngredientStore = defineStore('ingredient', {
         const res = await api.post<IngredientDto>('/ingredient', dto);
         this.ingredients.push(res.data); // add to local list
         return res.data;
-      } catch (err: any) {
-        this.error = err.message || 'Failed to create ingredient';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to create ingredient');
         throw err;
       }
     },

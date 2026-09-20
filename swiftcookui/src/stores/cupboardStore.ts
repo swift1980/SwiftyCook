@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import api from '@/services/api';
 import type { CupboardDto, CupboardCreateDto } from '@/interfaces/cupboard';
+import { getErrorMessage } from '@/utils/errors';
 
 export const useCupboardStore = defineStore('cupboard', {
   state: () => ({
@@ -16,8 +17,8 @@ export const useCupboardStore = defineStore('cupboard', {
       try {
         const response = await api.get<CupboardDto[]>('/cupboard');
         this.items = response.data;
-      } catch (err: any) {
-        this.error = err.message || 'Failed to load cupboard';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to load cupboard');
         console.error('Failed to fetch cupboard:', err);
       } finally {
         this.loading = false
@@ -36,8 +37,8 @@ export const useCupboardStore = defineStore('cupboard', {
           this.items.push(res.data);
         }
         return res.data;
-      } catch (err: any) {
-        this.error = err.message || 'Failed to add item to cupboard';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to add item to cupboard');
         throw err;
       }
     },
@@ -47,8 +48,8 @@ export const useCupboardStore = defineStore('cupboard', {
       try {
         await api.delete(`/cupboard/${ingredientId}`);
         this.items = this.items.filter(i => i.ingredientId !== ingredientId);
-      } catch (err: any) {
-        this.error = err.message || 'Failed to remove item from cupboard';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to remove item from cupboard');
         throw err;
       }
     },

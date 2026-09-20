@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import axios from 'axios'
 import api from '@/services/api'
 import type { IngredientSearchParams, PagedResultDto, RecipeSearchResultDto } from '@/interfaces/ingredientSearch'
 
@@ -19,9 +20,9 @@ export function useIngredientSearch() {
         { ...params, page, pageSize: 20 }
       )
       results.value = response.data
-    } catch (err: any) {
+    } catch (err: unknown) {
       results.value = null
-      if (err.response?.status === 400) {
+      if (axios.isAxiosError(err) && err.response?.status === 400) {
         error.value = err.response.data ?? 'Invalid search request.'
       } else {
         error.value = 'Failed to load results. Please try again.'

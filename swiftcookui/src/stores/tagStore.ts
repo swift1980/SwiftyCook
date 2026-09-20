@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia';
 import api from '@/services/api';
+import type { TagDto, TagCreateDto } from '@/interfaces/tag';
+import { getErrorMessage } from '@/utils/errors';
 
 export const useTagStore = defineStore('tag', {
   state: () => ({
-    tags: [] as any[],
+    tags: [] as TagDto[],
     error: null as string | null,
     loading: false,
   }),
@@ -12,7 +14,7 @@ export const useTagStore = defineStore('tag', {
     async fetchAll() {
 		this.loading = true
       try {
-        const response = await api.get('/tag');
+        const response = await api.get<TagDto[]>('/tag');
         this.tags = response.data;
       } catch (err) {
         console.error('Failed to fetch tags:', err);
@@ -21,15 +23,15 @@ export const useTagStore = defineStore('tag', {
 	  }
     },
 	
-	async createTag(tag: any) {
+	async createTag(tag: TagCreateDto) {
 		try {
-			const response = await api.post('/tag/post');
+			const response = await api.post<TagDto>('/tag/post', tag);
 			this.tags.push(response.data)
 			return response.data
 		}
-		catch (err: any)
+		catch (err: unknown)
 		{
-			this.error = err.message
+			this.error = getErrorMessage(err, 'Failed to create tag')
 			throw err
 		}
 	}

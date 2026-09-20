@@ -46,6 +46,8 @@
   const ingredientStore = useIngredientStore()
   const unitStore = useUnitStore()
 
+  defineOptions({ name: 'CupboardView' })
+
   const { ingredients } = storeToRefs(ingredientStore)
   const { units } = storeToRefs(unitStore)
 

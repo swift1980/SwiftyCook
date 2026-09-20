@@ -23,8 +23,8 @@
   </div>
 </template>
 
-<script setup>
-const props = defineProps({
+<script setup lang="ts">
+defineProps({
   recipe: {
     type: Object,
     required: true

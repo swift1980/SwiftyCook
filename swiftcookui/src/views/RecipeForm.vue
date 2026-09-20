@@ -117,7 +117,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRecipeStore } from '@/stores/recipeStore'
 import { useCategoryStore } from '@/stores/categoryStore'
