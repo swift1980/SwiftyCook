@@ -27,7 +27,7 @@ jobs:
         run: dotnet test swiftcookapi.tests/swiftcookapi.tests.csproj --no-build --configuration Release
 
   frontend:
-    name: Frontend (lint + build)
+    name: Frontend (lint + test + build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -47,6 +47,9 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Test
+        run: npm run test
 
       - name: Build (type-check + vite build)
         run: npm run build

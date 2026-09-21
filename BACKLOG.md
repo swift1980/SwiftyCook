@@ -11,9 +11,8 @@ sidebar but not real (Shopping List, Meal Planner) plus process gaps already
 flagged in `REVIEW.md` that remain open. Each ticket is scoped to be an
 independent PR; suggested order is noted per ticket.
 
-**Status:** Tickets 1, 2, and 3 implemented this session (see
-`IMPLEMENTATION_LOG.md`). Ticket 4 (frontend test runner) remains open —
-deliberately deferred per user decision.
+**Status:** Tickets 1, 2, 3, and 4 are now implemented (see
+`IMPLEMENTATION_LOG.md`). No open tickets remain in this revision.
 
 ---
 
@@ -113,7 +112,7 @@ new lint step starts green rather than red-from-day-one.
 
 ---
 
-## Ticket 4: Add a frontend test runner and initial store tests
+## Ticket 4: Add a frontend test runner and initial store tests — ✅ Done
 
 **Problem:** `REVIEW.md` (issue #6, still open) flagged that
 `swiftcookui/package.json` has no test runner (no Vitest/Jest) or test
@@ -132,3 +131,18 @@ suite for `RecipeIngredientSearchService`.
 **Order:** No dependency on Tickets 1-3, but pairs naturally with
 Ticket 1 (test the new `shoppingListStore.ts` as part of this ticket or
 immediately after).
+
+**Resolution:** Added `vitest`, `@vue/test-utils`, and `happy-dom` as dev
+dependencies (`@pinia/testing` was skipped — it requires Pinia >=4, but
+this repo pins Pinia 3.0.x). Added a `test` script (`vitest run`) and a
+`test` block in `vite.config.ts` (switched to `vitest/config`'s
+`defineConfig` so Vite + Vitest config types merge cleanly under
+`vue-tsc --build`). Added `src/stores/__tests__/cupboardStore.spec.ts`
+(fetch/add/remove, success + error paths) and
+`src/composables/__tests__/{useNameSearch,useIngredientSearch}.spec.ts`
+(blank-query guard, success, 400-error passthrough, generic-error
+fallback, `clear`/`loadPage` behavior for the ingredient search), all
+mocking `@/services/api` per the ticket's scope — 16 tests total, all
+passing. Wired `npm run test` into `.github/workflows/ci.yml`'s
+`frontend` job (between lint and build) so future regressions are caught
+in CI, not just locally.

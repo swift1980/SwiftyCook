@@ -203,6 +203,34 @@ domain for it.
   in-memory SQLite context (`RecipeIngredientSearchTestContextFactory.cs`),
   not the real MariaDB.
 
+### Ticket 4 — Frontend test runner + initial store/composable tests
+
+**Closes:** `swiftcookui` having no test runner or unit test coverage for
+Pinia stores/composables (`REVIEW.md` issue #6).
+
+- Added `vitest`, `@vue/test-utils`, and `happy-dom` as dev dependencies.
+  `@pinia/testing` was evaluated but skipped — it requires Pinia >=4,
+  while this repo pins Pinia `^3.0.3`; tests instead call
+  `setActivePinia(createPinia())` directly per test.
+- Added a `test` script (`vitest run`) to `swiftcookui/package.json`.
+- Added a `test` block to `vite.config.ts` (`environment: 'happy-dom'`,
+  `globals: true`), switching its `defineConfig` import from `vite` to
+  `vitest/config` so Vite's and Vitest's config types merge — required
+  for `vue-tsc --build` (used by `npm run build`) to type-check the file
+  cleanly.
+- Added `src/stores/__tests__/cupboardStore.spec.ts` — `fetchAll` (success
+  + error), `addItem` (append + replace-existing-ingredient), `removeItem`
+  (success + error, verifying `items` stay unchanged on failure).
+- Added `src/composables/__tests__/useNameSearch.spec.ts` and
+  `useIngredientSearch.spec.ts` — blank-query no-op guard, success path,
+  400-response server-message passthrough, generic-error fallback, and
+  `clear`/`loadPage` behavior for the ingredient search. All mock
+  `@/services/api` per the ticket's scope.
+- 16 tests total, all passing (`npm run test`); `npm run lint` and
+  `npm run build` remain 0 errors.
+- Wired `npm run test` into `.github/workflows/ci.yml`'s `frontend` job
+  (between lint and build) so this coverage runs in CI going forward.
+
 ### Pre-existing lint cleanup (surfaced by adding `npm run lint` to CI)
 
 Enabling the existing-but-unused `npm run lint` script for CI surfaced 60
