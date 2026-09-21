@@ -12,7 +12,8 @@ flagged in `REVIEW.md` that remain open. Each ticket is scoped to be an
 independent PR; suggested order is noted per ticket.
 
 **Status:** Tickets 1, 2, 3, and 4 are now implemented (see
-`IMPLEMENTATION_LOG.md`). No open tickets remain in this revision.
+`IMPLEMENTATION_LOG.md`). Ticket 5 (Cocktail ingredient search) is open,
+added after a grill-me review of README Functionality 2.
 
 ---
 
@@ -146,3 +147,38 @@ mocking `@/services/api` per the ticket's scope — 16 tests total, all
 passing. Wired `npm run test` into `.github/workflows/ci.yml`'s
 `frontend` job (between lint and build) so future regressions are caught
 in CI, not just locally.
+
+---
+
+## Ticket 5: Add ingredient-combination search for Cocktails
+
+**Problem:** README's Functionality 2 ("Searching of Recipes by Ingredient
+or combination of Ingredients, option for all ingredients or some
+ingredients") is fully served for Recipes by the Advanced Search panel
+(mandatory/optional ingredients + threshold, backed by
+`/recipe/search/ingredients`). A grill-me review of this functionality
+(this session) found the Cocktails view (`Cocktails.vue`) had its own,
+weaker, client-side ingredient filter
+(`cocktailStore.getFilteredCocktails`) with a `matchMode: 'and' | 'or'`
+parameter that was **never actually wired to any UI control** — always
+defaulted to `'and'` — making it dead/misleading code. That client-side
+ingredient filter has been removed (this session) rather than fixed, per
+user decision, leaving Cocktails with name search only and no ingredient
+filtering at all.
+
+**Scope (needs a product decision before implementation):**
+- Design whether Cocktails should get the same mandatory/optional/
+  threshold backend search as Recipes (new `/cocktail/search/ingredients`
+  endpoint + service, mirroring `RecipeIngredientSearchService`), or a
+  simpler cocktail-specific model (e.g. cocktails typically have fewer
+  ingredients than dishes, so a full threshold UI may be overkill).
+- If backend search is chosen: add the endpoint/service/DTOs, then wire
+  an Advanced-Search-equivalent panel into the Cocktails route (currently
+  hidden there — see Ticket 2/Functionality-2 grill session).
+- If descoping further: no action needed; Cocktails remains name-search
+  only.
+
+**Order:** No dependency on other tickets. Recommend confirming
+scope/priority with the user before starting, since this is net-new
+backend work rather than a wiring fix.
+

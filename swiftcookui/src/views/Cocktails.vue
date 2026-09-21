@@ -16,8 +16,6 @@
 
   const props = defineProps({
     nameQuery: { type: String, default: '' },
-    ingredientList: { type: Array as () => string[], default: () => [] },
-    matchMode: { type: String as () => 'and' | 'or', default: 'and' }
   })
 
   onMounted(() => {
@@ -25,6 +23,6 @@
   });
 
   const filtered = computed(() =>
-    cocktailStore.getFilteredCocktails(props.nameQuery, props.ingredientList, props.matchMode)
+    cocktailStore.getFilteredCocktails(props.nameQuery)
   )
 </script>

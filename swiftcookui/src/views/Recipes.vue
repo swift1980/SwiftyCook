@@ -23,8 +23,6 @@
 
   const props = defineProps({
     nameQuery: { type: String, default: '' },
-    ingredientList: { type: Array as () => string[], default: () => [] },
-    matchMode: { type: String as () => 'and' | 'or', default: 'and' },
     selectedCategoryIds: { type: Array as () => number[], default: () => [] },
     searchResults: { type: Object as () => PagedResultDto<RecipeSearchResultDto> | null, default: null },
     searchError: { type: String as () => string | null, default: null },
@@ -75,10 +73,8 @@
       return (props.nameSearchResults ?? []).map((r) => ({ id: r.id, name: r.name, image: r.image }))
     }
 
-    // Browse-all path — apply the ingredient-tag filter client-side over the full list
-    return recipeStore
-      .filterByIngredients(props.ingredientList, props.matchMode)
-      .map((r) => ({ id: r.id, name: r.name, image: r.image }))
+    // Browse-all path — full list, unfiltered (ingredient filtering now lives solely in Search by Ingredient)
+    return recipeStore.recipes.map((r) => ({ id: r.id, name: r.name, image: r.image }))
   })
 
   const emptyState = computed((): string | null => {

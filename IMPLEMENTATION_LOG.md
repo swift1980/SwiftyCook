@@ -231,7 +231,66 @@ Pinia stores/composables (`REVIEW.md` issue #6).
 - Wired `npm run test` into `.github/workflows/ci.yml`'s `frontend` job
   (between lint and build) so this coverage runs in CI going forward.
 
-### Pre-existing lint cleanup (surfaced by adding `npm run lint` to CI)
+### Functionality 2 grill-me review — deduplicate ingredient search
+
+**Trigger:** a grill-me session on README Functionality 2 ("Searching of
+Recipes by Ingredient or combination of Ingredients, option for all
+ingredients or some ingredients") surfaced that the app had **two
+parallel, inconsistent** ingredient-search mechanisms:
+1. The Advanced Search panel (`AdvancedSearch.vue` →
+   `useIngredientSearch` → `/recipe/search/ingredients`) — a real
+   mandatory/optional + threshold-slider search, backend-paginated.
+2. A top-search-bar ingredient-tag input (`MainContent.vue`'s
+   `ingredientList` → `recipeStore.filterByIngredients` /
+   `cocktailStore.getFilteredCocktails`) — a client-side substring
+   filter whose `matchMode: 'and' | 'or'` was **never wired to any UI
+   control** (always defaulted to `'and'`), and was never even passed
+   down from `MainContent.vue` to `Recipes.vue` as a prop — dead code
+   masquerading as a feature.
+
+The Advanced Search panel was also rendering (inertly) on the Cocktails
+route, since `Cocktails.vue` never consumed `ingredientSearch` results.
+
+**User decisions (grilled, confirmed):**
+- Advanced Search's mandatory/optional/threshold model is the canonical
+  fulfillment of Functionality 2 (it subsumes plain AND/OR).
+- Remove the top-bar ingredient-tag mechanism entirely rather than fix
+  its dead AND/OR toggle.
+- Advanced Search stays Recipes-only; hide it on non-Recipes routes
+  instead of rendering inertly.
+- Cocktails losing ingredient search entirely (name search only) is
+  accepted — tracked as **Ticket 5** in `BACKLOG.md` for a future,
+  dedicated Cocktail ingredient-search feature.
+- Since Advanced Search is now the *only* ingredient-search path (not one
+  of two), keep it collapsible (to avoid pushing the recipe grid below
+  the fold) but relabel it from "Advanced Search"/"Hide Advanced Search"
+  to **"Search by Ingredient"/"Hide Ingredient Search"** so it reads as
+  primary, not optional.
+
+**Changed files:**
+- `swiftcookui/src/components/MainContent.vue` — removed the ingredient-
+  tag input/tags/clear-button UI and its `ingredientInput`/`ingredientList`
+  state + handlers (`addIngredient`/`removeIngredient`/`handleBackspace`);
+  scoped the ingredient-search toggle button, `AdvancedSearch` panel, and
+  pagination controls to `route.name === 'Recipes'`; relabeled the toggle
+  button; removed `ingredientList` from `recipesProps`/`cocktailsProps`;
+  removed now-dead CSS for the tag input/tags/clear button.
+- `swiftcookui/src/views/Recipes.vue` — removed `ingredientList`/
+  `matchMode` props; browse-all path now shows the unfiltered
+  `recipeStore.recipes` list instead of client-side filtering.
+- `swiftcookui/src/views/Cocktails.vue` — removed `ingredientList`/
+  `matchMode` props; `getFilteredCocktails` now takes only `nameQuery`.
+- `swiftcookui/src/stores/recipeStore.ts` — removed the
+  `filterByIngredients` getter.
+- `swiftcookui/src/stores/cocktailStore.ts` — `getFilteredCocktails`
+  simplified to name-only filtering (ingredient matching removed).
+- `BACKLOG.md` — added Ticket 5 (Cocktail ingredient search, open).
+
+Verified with `npm run test` (16/16 passing, unaffected), `npm run lint`
+(0 errors), and `npm run build` (`vue-tsc --build` + `vite build`, 0
+errors).
+
+
 
 Enabling the existing-but-unused `npm run lint` script for CI surfaced 60
 pre-existing errors, all fixed in this session so CI starts green:

@@ -3,41 +3,23 @@
     <div v-if="route.name !== 'RecipeForm'" class="search-section">
       <div class="search-bar">
         <input v-model="nameQuery" type="text" placeholder="Search by recipe name" />
-        <div class="ingredient-input-wrapper">
-          <div class="ingredient-tags">
-            <span v-for="(ing, index) in ingredientList"
-                  :key="index"
-                  class="ingredient-tag">
-              {{ ing }}
-              <button @click="removeIngredient(index)" class="tag-remove">x</button>
-            </span>
-          </div>
-          <input v-model="ingredientInput"
-                 type="text"
-                 placeholder="Add ingredient and press Enter"
-                 @keydown.enter.prevent="addIngredient"
-                 @keydown.backspace="handleBackspace" />
-        </div>
-        <button v-if="ingredientList.length" class="clear-ingredients" @click="ingredientList = []">
-          Clear
-        </button>
       </div>
 
       <div class="filter-controls">
         <button v-if="route.name === 'Recipes'" class="category-btn" @click="toggleCategories">
           Categories
         </button>
-        <button class="advanced-btn" @click="toggleAdvancedSearch">
-          {{ showAdvancedSearch ? 'Hide Advanced Search' : 'Advanced Search' }}
+        <button v-if="route.name === 'Recipes'" class="advanced-btn" @click="toggleAdvancedSearch">
+          {{ showAdvancedSearch ? 'Hide Ingredient Search' : 'Search by Ingredient' }}
         </button>
       </div>
 
-      <AdvancedSearch v-if="showAdvancedSearch"
+      <AdvancedSearch v-if="route.name === 'Recipes' && showAdvancedSearch"
                       @search="onAdvancedSearch"
                       @clear="onAdvancedClear" />
 
       <!-- Pagination controls — visible only when server results are active -->
-      <div v-if="ingredientSearch.results.value" class="pagination-controls">
+      <div v-if="route.name === 'Recipes' && ingredientSearch.results.value" class="pagination-controls">
         <button :disabled="ingredientSearch.results.value.page <= 1"
                 @click="ingredientSearch.loadPage(ingredientSearch.results.value.page - 1)">
           ‹ Prev
@@ -86,8 +68,6 @@
   const route = useRoute()
 
   const nameQuery = ref('')
-  const ingredientInput = ref('')
-  const ingredientList = ref<string[]>([])
   const showAdvancedSearch = ref(false)
   const showCategories = ref(false)
   const selectedCategoryIds = ref<number[]>([])
@@ -119,20 +99,6 @@
     showCategories.value = !showCategories.value
   }
 
-  function addIngredient() {
-    const value = ingredientInput.value.trim().replace(/,$/, '')
-    if (value && !ingredientList.value.includes(value)) ingredientList.value.push(value)
-    ingredientInput.value = ''
-  }
-
-  function removeIngredient(index: number) {
-    ingredientList.value.splice(index, 1)
-  }
-
-  function handleBackspace() {
-    if (ingredientInput.value === '' && ingredientList.value.length) ingredientList.value.pop()
-  }
-
   function onAdvancedSearch(params: IngredientSearchParams) {
     lastParams.value = params
     ingredientSearch.search(params, 1)
@@ -149,7 +115,6 @@
 
   const recipesProps = computed(() => ({
     nameQuery: nameQuery.value,
-    ingredientList: ingredientList.value,
     selectedCategoryIds: selectedCategoryIds.value,
     searchResults: ingredientSearch.results.value,
     searchError: ingredientSearch.error.value,
@@ -161,7 +126,6 @@
 
   const cocktailsProps = computed(() => ({
     nameQuery: nameQuery.value,
-    ingredientList: ingredientList.value,
   }))
 
   const routeProps = computed(() => {
@@ -236,72 +200,6 @@
       justify-content: center;
       align-items: center;
       z-index: 1000;
-    }
-
-    .ingredient-input-wrapper {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 6px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      padding: 4px 8px;
-      min-height: 40px;
-      flex: 1;
-    }
-
-    .ingredient-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-    }
-
-    .ingredient-tag {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      background: #e8f4e8;
-      color: #2d6a2d;
-      border-radius: 4px;
-      padding: 2px 8px;
-      font-size: 0.875rem;
-    }
-
-    .tag-remove {
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: #2d6a2d;
-      font-size: 1rem;
-      padding: 0;
-      line-height: 1;
-
-      &:hover {
-        color: #a00;
-      }
-    }
-
-    .clear-ingredients {
-      font-size: 0.8rem;
-      padding: 4px 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      background: none;
-      cursor: pointer;
-      color: #666;
-
-      &:hover {
-        background: #f5f5f5;
-      }
-    }
-
-    .ingredient-input-wrapper input {
-      border: none;
-      outline: none;
-      flex: 1;
-      min-width: 180px;
-      font-size: 0.9rem;
-      background: transparent;
     }
   }
 </style>
