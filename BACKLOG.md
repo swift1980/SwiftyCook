@@ -11,24 +11,24 @@ sidebar but not real (Shopping List, Meal Planner) plus process gaps already
 flagged in `REVIEW.md` that remain open. Each ticket is scoped to be an
 independent PR; suggested order is noted per ticket.
 
-**Status:** Tickets 1, 2, 3, 4, and 9 are now implemented (see
-`IMPLEMENTATION_LOG.md` for 1-4; Ticket 9 below for its own resolution
-summary). Ticket 8 (ingredient category hierarchy UI) has a settled
-design (grill-me) and is next up for implementation. Ticket 5 (Cocktail
-ingredient search), Ticket 6 (manual ingredient entry), Ticket 7 (fuzzy
-ingredient-name matching), and Ticket 10 (pre-existing `RecipeForm.vue`
-untyped-ingredient bug) are open.
+**Status:** Tickets 1, 2, 3, 4, 8, and 9 are now implemented (see
+`IMPLEMENTATION_LOG.md` for 1-4; Tickets 8 and 9 below for their own
+resolution summaries). Ticket 5 (Cocktail ingredient search), Ticket 6
+(manual ingredient entry), Ticket 7 (fuzzy ingredient-name matching),
+and Ticket 10 (pre-existing `RecipeForm.vue` untyped-ingredient bug)
+are open.
 
 **Suggested priority order (open tickets):**
 1. ~~**Ticket 9**~~ — ✅ implemented (`IngredientCategory` schema +
    automatic backfill of the 6 root categories + read-only `GET
    /ingredientcategory` endpoint). Was blocking Ticket 8.
-2. **Ticket 8** — rewire `AdvancedSearch.vue` to render one box per
-   `IngredientCategory` instead of per `IngredientType`. Design fully
-   settled this session (see Ticket 8). Hard-depends on Ticket 9.
+2. ~~**Ticket 8**~~ — ✅ implemented (`AdvancedSearch.vue` now renders
+   one box per root `IngredientCategory` instead of per
+   `IngredientType`). Was blocking Ticket 6.
 3. **Ticket 6** — implement manual entry against the category-box layout
    from Ticket 8 (including the per-category "Miscellaneous" type
-   fallback for newly-created ingredients). Depends on 8 + 9.
+   fallback for newly-created ingredients). Depends on 8 + 9 (both now
+   done) — ready to start.
 4. **Ticket 7** — fuzzy/near-duplicate matching. Its own scope depends on
    Ticket 6's manual-entry flow existing to extend, though the
    `RecipeForm.vue` half could start independently/earlier if desired.
@@ -312,7 +312,7 @@ extend; can otherwise start independently against `RecipeForm.vue`.
 
 ---
 
-## Ticket 8: Rewire `AdvancedSearch.vue` to render one box per `IngredientCategory` — ✅ Design settled (grill-me)
+## Ticket 8: Rewire `AdvancedSearch.vue` to render one box per `IngredientCategory` — ✅ Implemented
 
 **Problem:** `AdvancedSearch.vue` renders one box per `IngredientType`
 (`typeBoxes` = `ingredientStore.getIngredientsGroupedByTypeWithNames`,
@@ -374,6 +374,31 @@ structure:
 
 **Order:** Hard dependency on Ticket 9 (schema + backfill + read
 endpoint must exist first).
+
+**Resolution:** Implemented as designed. `AdvancedSearch.vue` now
+builds `categoryBoxes` from `useIngredientCategoryStore().categories`
+(filtered to `parentCategoryId == null`, i.e. root categories only —
+7 boxes today: 6 families + Miscellaneous), instead of grouping
+directly by `IngredientType`. Each box's datalist options span every
+`IngredientDto` whose `typeId` resolves (via a `typeId → categoryId`
+map built from `useIngredientTypeStore().ingredientTypes`) to that
+category. Selection/removal/mandatory-toggle logic now keys off
+category rather than type; selected tags additionally show their
+specific `IngredientType` name as a small label
+(`ingredient-tag-type`), per the settled design. Boxes render even for
+categories with zero ingredients yet (e.g. Miscellaneous today), since
+the fixed 7-box count — not data population — is the point of this
+ticket. `ingredientStore.ts`'s superseded
+`getIngredientsGroupedByTypeWithNames` getter was removed (dead code,
+its only consumer was rewired), and `IngredientTypeDto.categoryId`
+reverted from optional to required now that no synthetic
+construction of it remains. No backend changes — `/recipe/search/
+ingredients` still resolves by ingredient ID regardless of source box.
+Verified with a new `src/components/__tests__/AdvancedSearch.spec.ts`
+(5 tests: root-only box count, cross-type option aggregation within a
+category, empty-category box rendering, correct category grouping +
+type-label on selection, and rejecting a wrong-category name match),
+plus `npm run build`/`lint`/`test` (21/21 passing).
 
 ---
 

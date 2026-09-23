@@ -3,12 +3,12 @@
     <h3 class="advanced-search__title">Advanced Search</h3>
 
     <div class="advanced-search__grid">
-      <div v-for="box in typeBoxes" :key="box.typeId" class="advanced-search__field">
-        <label :for="`ingredient-type-${box.typeId}`">{{ box.typeName }}</label>
+      <div v-for="box in categoryBoxes" :key="box.categoryId" class="advanced-search__field">
+        <label :for="`ingredient-category-${box.categoryId}`">{{ box.categoryName }}</label>
 
         <div class="advanced-search__box">
-          <div v-if="selectedByType[box.typeId]?.length" class="ingredient-tags">
-            <span v-for="item in selectedByType[box.typeId]"
+          <div v-if="selectedByCategory[box.categoryId]?.length" class="ingredient-tags">
+            <span v-for="item in selectedByCategory[box.categoryId]"
                   :key="item.id"
                   class="ingredient-tag"
                   :class="item.mandatory ? 'ingredient-tag--mandatory' : 'ingredient-tag--optional'">
@@ -19,17 +19,18 @@
                 {{ item.mandatory ? 'M' : 'O' }}
               </button>
               {{ item.name }}
+              <span v-if="item.typeName" class="ingredient-tag-type">({{ item.typeName }})</span>
               <button type="button" class="tag-remove" @click="removeIngredient(item.id)">x</button>
             </span>
           </div>
 
-          <input :id="`ingredient-type-${box.typeId}`"
-                 v-model="inputs[box.typeId]"
+          <input :id="`ingredient-category-${box.categoryId}`"
+                 v-model="inputs[box.categoryId]"
                  type="text"
-                 :list="`ingredient-options-${box.typeId}`"
-                 :placeholder="`Search ${box.typeName.toLowerCase()}`"
-                 @keydown.enter.prevent="addIngredient(box.typeId)" />
-          <datalist :id="`ingredient-options-${box.typeId}`">
+                 :list="`ingredient-options-${box.categoryId}`"
+                 :placeholder="`Search ${box.categoryName.toLowerCase()}`"
+                 @keydown.enter.prevent="addIngredient(box.categoryId)" />
+          <datalist :id="`ingredient-options-${box.categoryId}`">
             <option v-for="name in box.options" :key="name" :value="name" />
           </datalist>
         </div>
@@ -74,6 +75,8 @@
 <script setup lang="ts">
   import { reactive, ref, computed, watch, onMounted } from 'vue'
   import { useIngredientStore } from '@/stores/ingredientStore'
+  import { useIngredientTypeStore } from '@/stores/ingredientTypeStore'
+  import { useIngredientCategoryStore } from '@/stores/ingredientCategoryStore'
   import { useCupboardStore } from '@/stores/cupboardStore'
   import type { IngredientSearchParams } from '@/interfaces/ingredientSearch'
 
@@ -83,15 +86,20 @@
   }>()
 
   const ingredientStore = useIngredientStore()
+  const ingredientTypeStore = useIngredientTypeStore()
+  const ingredientCategoryStore = useIngredientCategoryStore()
   const cupboardStore = useCupboardStore()
 
   interface SelectedIngredient {
     id: number
     name: string
     mandatory: boolean
+    // Specific IngredientType label, shown on the tag for clarity even though
+    // the box itself is grouped by the broader IngredientCategory (Ticket 8).
+    typeName?: string
   }
 
-  // Keyed by typeId: current text input value
+  // Keyed by categoryId: current text input value
   const inputs = reactive<Record<number, string>>({})
 
   // All selected ingredients flat, keyed by ingredient id for O(1) lookup
@@ -101,28 +109,45 @@
   const isDirty = ref(false)
   const lastSubmittedKey = ref('')
 
-  const typeBoxes = computed(() =>
-    ingredientStore.getIngredientsGroupedByTypeWithNames.map((group) => ({
-      typeId: group.type.id,
-      typeName: group.type.name,
-      options: group.ingredients.map((i) => i.name),
-    }))
+  // typeId -> categoryId, so ingredients (which only carry typeId/typeName) can
+  // be grouped under their root IngredientCategory.
+  const typeCategoryMap = computed(() => {
+    const map: Record<number, number> = {}
+    for (const type of ingredientTypeStore.ingredientTypes) {
+      map[type.id] = type.categoryId
+    }
+    return map
+  })
+
+  // One box per root IngredientCategory (fixed, small count) instead of one per
+  // IngredientType (unbounded, user-creatable) — see BACKLOG.md Ticket 8.
+  const categoryBoxes = computed(() =>
+    ingredientCategoryStore.categories
+      .filter((c) => c.parentCategoryId == null)
+      .map((category) => ({
+        categoryId: category.id,
+        categoryName: category.name,
+        options: ingredientStore.ingredients
+          .filter((i) => i.typeId != null && typeCategoryMap.value[i.typeId] === category.id)
+          .map((i) => i.name),
+      }))
   )
 
-  // Initialise inputs when typeBoxes resolves
-  watch(typeBoxes, (boxes) => {
+  // Initialise inputs when categoryBoxes resolves
+  watch(categoryBoxes, (boxes) => {
     boxes.forEach((b) => {
-      if (!(b.typeId in inputs)) inputs[b.typeId] = ''
+      if (!(b.categoryId in inputs)) inputs[b.categoryId] = ''
     })
   }, { immediate: true })
 
-  const selectedByType = computed(() => {
+  const selectedByCategory = computed(() => {
     const map: Record<number, SelectedIngredient[]> = {}
     for (const item of Object.values(selectedMap)) {
       const typeId = ingredientStore.ingredients.find((i) => i.id === item.id)?.typeId
-      if (typeId == null) continue
-      if (!map[typeId]) map[typeId] = []
-      map[typeId].push(item)
+      const categoryId = typeId != null ? typeCategoryMap.value[typeId] : undefined
+      if (categoryId == null) continue
+      if (!map[categoryId]) map[categoryId] = []
+      map[categoryId].push(item)
     }
     return map
   })
@@ -149,16 +174,17 @@
     isDirty.value = true
   })
 
-  function addIngredient(typeId: number) {
-    const value = inputs[typeId]?.trim()
+  function addIngredient(categoryId: number) {
+    const value = inputs[categoryId]?.trim()
     if (!value) return
-    const match = ingredientStore
-      .getIngredientsByTypeId(typeId)
-      .find((i) => i.name.toLowerCase() === value.toLowerCase())
+    const match = ingredientStore.ingredients.find((i) => {
+      if (i.typeId == null || typeCategoryMap.value[i.typeId] !== categoryId) return false
+      return i.name.toLowerCase() === value.toLowerCase()
+    })
     if (match && !(match.id in selectedMap)) {
-      selectedMap[match.id] = { id: match.id, name: match.name, mandatory: false }
+      selectedMap[match.id] = { id: match.id, name: match.name, mandatory: false, typeName: match.typeName }
     }
-    inputs[typeId] = ''
+    inputs[categoryId] = ''
   }
 
   function removeIngredient(id: number) {
@@ -184,10 +210,10 @@
 
     for (const item of cupboardStore.items) {
       if (item.ingredientId in selectedMap) continue
-      // Only add ingredients we can resolve a type for, so they render in a type box
-      const known = ingredientStore.ingredients.some((i) => i.id === item.ingredientId)
+      // Only add ingredients we can resolve a type for, so they render in a category box
+      const known = ingredientStore.ingredients.find((i) => i.id === item.ingredientId)
       if (!known) continue
-      selectedMap[item.ingredientId] = { id: item.ingredientId, name: item.ingredientName, mandatory: false }
+      selectedMap[item.ingredientId] = { id: item.ingredientId, name: item.ingredientName, mandatory: false, typeName: known.typeName }
     }
   }
 
@@ -212,6 +238,8 @@
 
   onMounted(() => {
     if (!ingredientStore.ingredients.length) ingredientStore.fetchAll()
+    if (!ingredientTypeStore.ingredientTypes.length) ingredientTypeStore.fetchAll()
+    if (!ingredientCategoryStore.categories.length) ingredientCategoryStore.fetchAll()
   })
 </script>
 
@@ -313,6 +341,11 @@
         background: #e8f4e8;
         color: #2d6a2d;
       }
+    }
+
+    .ingredient-tag-type {
+      font-size: 0.75rem;
+      opacity: 0.7;
     }
 
     .tag-mode {

@@ -424,3 +424,62 @@ implementation only.
 **Not in this ticket (left for Ticket 8):** `AdvancedSearch.vue` itself
 is untouched — still renders one box per `IngredientType`. Ticket 8 is
 the actual UI consumer of this new hierarchy.
+
+---
+
+## Ticket 8 — Rewire `AdvancedSearch.vue` to render one box per `IngredientCategory`
+
+**Closes:** the unbounded, one-box-per-`IngredientType` Advanced Search
+layout (29 possible boxes today), by consuming Ticket 9's new
+`IngredientCategory` hierarchy. Design settled via `/grill-me`
+alongside Ticket 9 (see `BACKLOG.md` Ticket 8 for the full decision
+log); this entry covers the implementation only.
+
+**Changed files:**
+- `swiftcookui/src/components/AdvancedSearch.vue` — `categoryBoxes`
+  (replacing `typeBoxes`) is built from `useIngredientCategoryStore().
+  categories` filtered to root categories (`parentCategoryId == null`)
+  — 7 boxes today (6 families + Miscellaneous) instead of up to 29. A
+  `typeCategoryMap` computed (`typeId → categoryId`, built from
+  `useIngredientTypeStore().ingredientTypes`) lets each box's datalist
+  aggregate ingredients across every child `IngredientType` in that
+  category. Selection (`selectedByCategory`), add/remove/toggle-
+  mandatory, and the "Use my cupboard" prefill all now key off
+  category rather than type. Selected tags gained a small
+  `ingredient-tag-type` label showing the ingredient's specific
+  `IngredientType` name for clarity, since the box itself is now
+  category-scoped (per the settled design). Boxes render even for
+  categories with zero ingredients yet (e.g. Miscellaneous) — the
+  fixed, small box count is the point of this ticket, not data
+  population. `onMounted` now also fetches `ingredientTypeStore` and
+  `ingredientCategoryStore` alongside the existing `ingredientStore`
+  fetch.
+- `swiftcookui/src/stores/ingredientStore.ts` — removed the superseded
+  `getIngredientsGroupedByTypeWithNames` getter (dead code once
+  `AdvancedSearch.vue` was rewired to compute category grouping itself
+  from the three stores, matching this codebase's existing
+  decoupled-store convention).
+- `swiftcookui/src/interfaces/ingredientType.ts` — `IngredientTypeDto.
+  categoryId` reverted from optional back to required, since the only
+  reason it was optional (the now-removed synthetic
+  `IngredientTypeDto` construction) no longer exists.
+- `swiftcookui/src/components/__tests__/AdvancedSearch.spec.ts` (new,
+  first component test in the repo) — 5 tests: renders one box per
+  root category only (excluding a non-root category and asserting
+  count doesn't scale with `IngredientType` count); a category box's
+  options span all of its child types; an empty category still gets a
+  box; selecting an ingredient groups it under the right category and
+  labels it with its specific type; typing a name into the wrong
+  category's box doesn't match it.
+
+**No backend changes** — `/recipe/search/ingredients` still resolves
+by ingredient ID regardless of which box it was selected from, exactly
+as anticipated in Ticket 8's design.
+
+**Verification:** `npm run build` / `npm run lint` / `npm run test` —
+0 errors, 21/21 tests passing (16 pre-existing + 5 new).
+
+**Not in this ticket (left for Ticket 6):** manual/free-text creation
+of new ingredients from within a category box — this ticket only
+regroups the *existing* ingredient-selection UI; Ticket 6 adds the
+create-on-the-fly flow on top of this layout.

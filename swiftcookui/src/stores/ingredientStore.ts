@@ -2,7 +2,6 @@ import { defineStore } from 'pinia';
 import api from '@/services/api';
 import type { IngredientDto } from "../interfaces/ingredient";
 import type { IngredientCreateDto } from "../interfaces/ingredient";
-import type { IngredientTypeDto } from "../interfaces/ingredientType";
 import { getErrorMessage } from '@/utils/errors';
 
 export const useIngredientStore = defineStore('ingredient', {
@@ -29,23 +28,6 @@ export const useIngredientStore = defineStore('ingredient', {
         }
       }
       return groups;
-    },
-
-    getIngredientsGroupedByTypeWithNames: (state): Array<{ type: IngredientTypeDto; ingredients: IngredientDto[] }> => {
-      const groups = new Map<number, { type: IngredientTypeDto; ingredients: IngredientDto[] }>();
-      for (const ingredient of state.ingredients) {
-        if (ingredient.typeId == null) continue; // skip untyped ingredients
-        const existing = groups.get(ingredient.typeId);
-        if (existing) {
-          existing.ingredients.push(ingredient);
-        } else {
-          groups.set(ingredient.typeId, {
-            type: { id: ingredient.typeId, name: ingredient.typeName ?? '' },
-            ingredients: [ingredient],
-          });
-        }
-      }
-      return Array.from(groups.values());
     },
   },
 
