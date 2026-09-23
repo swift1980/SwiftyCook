@@ -627,3 +627,77 @@ frontend change; no schema/API changes required.
 `RecipeForm.vue` untyped-ingredient bug (`createIngredient` called with
 no `typeId`) — tracked separately as Ticket 10. Fuzzy matching reduces
 how often that code path is hit but does not fix it.
+
+---
+
+## Ticket 10 — Fix `RecipeForm.vue` auto-created ingredients being invisible in Advanced Search
+
+**Closes:** the pre-existing bug flagged during the Ticket 8/9 grill-me
+session — `RecipeForm.vue`'s `submitForm()` auto-creation path called
+`ingredientStore.createIngredient({ name, pluralName: '' })` with no
+`typeId`, leaving `Ingredient.TypeId = NULL`. `AdvancedSearch.vue`
+groups ingredients by category via their `typeId`, so any ingredient
+typed directly into a recipe (rather than picked from the existing
+list) silently became permanently invisible in every Advanced Search
+box.
+
+**Design decision:** the ticket's scope explicitly called out needing
+"its own small design decision" since `RecipeForm.vue` has no Ticket
+8-style category-box context to infer *which* category's fallback type
+to use. Presented 3 options to the user: (a) a small category picker
+(7 root categories, reusing Ticket 6's existing `FallbackTypeId`), (b)
+a full `IngredientType` picker (~36 options), (c) a single global
+"Uncategorized" type with no prompt. **Chose (a)** — reuses existing,
+already-seeded infrastructure with zero schema changes, and asks a
+much smaller, coarser-grained question than a full type list.
+
+**Frontend changes (`swiftcookui/src/views/RecipeForm.vue`):**
+- Added `categoryId: number | null` to the `FormIngredient` type (and
+  its two initial-value sites in `form.ingredients`/`resetForm()`).
+- New `rootCategories` computed — root `IngredientCategory` list from
+  `useIngredientCategoryStore` (now also fetched in `onMounted`).
+- New `needsCategory` computed — per ingredient row: true only when the
+  row has a typed name, no resolved `ingredientId`, and no exact
+  case-insensitive match among existing ingredients (i.e. it will be
+  auto-created at submit time).
+- Template: a `<select class="new-ingredient-category">` renders per
+  row only when `needsCategory[index]` is true, listing
+  `rootCategories`.
+- `submitForm()`: now blocks (with an `alert`, matching this file's
+  existing validation-via-alert pattern) if any row needing a category
+  doesn't have one selected. When creating a new ingredient, resolves
+  `ingredientCategoryStore.categories.find(c => c.id ===
+  ri.categoryId)?.fallbackTypeId` and passes it as `typeId` to
+  `createIngredient()`, instead of the previous no-`typeId` call.
+- Interacts cleanly with Ticket 7: accepting a "Did you mean...?"
+  suggestion resolves the row to an exact match, which makes
+  `needsCategory` false and hides the category picker again — no
+  double-prompting.
+
+**Audit/backfill:** not applicable — `swiftcookdb/seeds/6-Ingredient.sql`
+has no `TypeId IS NULL` rows, and (per this repo's schema/seed-only,
+no-migrations approach — see the file header) there is no persisted
+production database to backfill; schema and seed data are applied fresh
+per environment. `Ingredient.TypeId` remains nullable at the DB layer
+(`swiftcookdb/init.sql`) — this ticket only closes the one UI code path
+that silently produced NULL rows.
+
+**Verification:**
+- New `swiftcookui/src/views/__tests__/RecipeForm.spec.ts` — first test
+  file for this component, 4 tests: no category picker for an
+  exact-match ingredient name; picker lists root categories only
+  (excludes a non-root category fixture); submit is blocked with an
+  alert when a new-ingredient row has no category selected; submit
+  creates the ingredient via `POST /ingredient` with the selected
+  category's `fallbackTypeId` as `typeId`.
+- `dotnet test` — 11/11 (no backend/schema changes). `npm run
+  build`/`lint`/`test` — 41/41 frontend tests passing.
+- End-to-end: ran a fresh `mariadb` + `swiftcookapi` docker-compose
+  stack; `POST /api/ingredient` with a resolved fallback `typeId`
+  returned a fully-typed ingredient (non-null `typeName`), and it
+  appeared correctly typed via a subsequent `GET /api/ingredient` —
+  confirming the fix's real-world effect versus the pre-fix NULL-typed
+  behavior.
+
+**Not in this ticket:** Ticket 5 (Cocktails ingredient search) remains
+the only open backlog item, fully independent of this work.

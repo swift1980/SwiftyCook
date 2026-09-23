@@ -11,11 +11,10 @@ sidebar but not real (Shopping List, Meal Planner) plus process gaps already
 flagged in `REVIEW.md` that remain open. Each ticket is scoped to be an
 independent PR; suggested order is noted per ticket.
 
-**Status:** Tickets 1, 2, 3, 4, 6, 7, 8, and 9 are now implemented (see
-`IMPLEMENTATION_LOG.md` for 1-4; Tickets 6, 7, 8, and 9 below for their
-own resolution summaries). Ticket 5 (Cocktail ingredient search) and
-Ticket 10 (pre-existing `RecipeForm.vue` untyped-ingredient bug) are
-open.
+**Status:** Tickets 1, 2, 3, 4, 6, 7, 8, 9, and 10 are now implemented
+(see `IMPLEMENTATION_LOG.md` for 1-4; Tickets 6, 7, 8, 9, and 10 below
+for their own resolution summaries). Only Ticket 5 (Cocktail ingredient
+search) remains open.
 
 **Suggested priority order (open tickets):**
 1. ~~**Ticket 9**~~ — ✅ implemented (`IngredientCategory` schema +
@@ -30,11 +29,12 @@ open.
 4. ~~**Ticket 7**~~ — ✅ implemented (shared Levenshtein-based
    `findClosestMatch` utility; "Did you mean...?" suggestions in both
    `AdvancedSearch.vue` and `RecipeForm.vue`).
-5. **Ticket 5** — Cocktails ingredient search. Fully independent of
-   6/7/8/9/10 (different view, no shared code path) — can be picked up
-   in parallel at any point without waiting on the above.
-6. **Ticket 10** — fix the pre-existing `RecipeForm.vue` untyped-
-   ingredient bug. Independent bug fix; can be picked up any time.
+5. ~~**Ticket 10**~~ — ✅ implemented (`RecipeForm.vue` now requires a
+   category for brand-new ingredients, resolving a real `FallbackTypeId`
+   instead of leaving `TypeId` NULL).
+6. **Ticket 5** — Cocktails ingredient search. Fully independent of
+   6/7/8/9/10 (different view, no shared code path) — the only ticket
+   left open.
 
 ---
 
@@ -574,7 +574,7 @@ schema change.
 
 ---
 
-## Ticket 10: Fix pre-existing bug — `RecipeForm.vue` auto-created ingredients are invisible in Advanced Search
+## Ticket 10: Fix pre-existing bug — `RecipeForm.vue` auto-created ingredients are invisible in Advanced Search — ✅ Implemented
 
 **Problem:** Discovered incidentally during the Ticket 8/9 grill-me
 session (unrelated to those tickets' scope). `RecipeForm.vue`'s
@@ -605,3 +605,46 @@ session's other tickets.
 **Order:** No dependency on other tickets — independent bug fix, though
 implementing it after Ticket 9 (once a "Miscellaneous type" pattern
 exists) may simplify the fix by giving it a ready-made fallback to reuse.
+
+**Resolution:** Chose the "category picker" approach (of three options
+presented): `RecipeForm.vue` now shows a small "select a category"
+dropdown (the 7 root `IngredientCategory` rows, reusing Ticket 8's
+`ingredientCategoryStore`) next to any ingredient row whose typed name
+has no exact match among existing ingredients. Submitting resolves that
+category's existing Ticket 6 `FallbackTypeId` and passes it as the new
+ingredient's `TypeId`, instead of the previous no-`typeId` call. This
+was preferred over a full ~36-entry `IngredientType` picker (more
+correct but heavier UI ask) and over a single global "Uncategorized"
+type (zero-prompt but coarser categorization and no reuse of existing
+per-category fallback infrastructure) — reusing the already-seeded
+`FallbackTypeId` per category needed no schema changes at all.
+- `RecipeForm.vue`: new `categoryId` field on `FormIngredient`; new
+  `rootCategories` computed (root `IngredientCategory` list); new
+  `needsCategory` computed (per-row: typed name, no `ingredientId`, no
+  exact-match); category `<select>` renders only for rows where
+  `needsCategory` is true. `submitForm()` now blocks with an alert if
+  any such row is missing a `categoryId`, then resolves
+  `category.fallbackTypeId` and passes it as `typeId` to
+  `createIngredient()`.
+- Interacts cleanly with Ticket 7's fuzzy suggestions: accepting a
+  "Did you mean...?" suggestion replaces the typed name with an exact
+  match, which makes `needsCategory` false and hides the picker again.
+- **Audit/backfill:** not needed — `swiftcookdb/seeds/6-Ingredient.sql`
+  has no `TypeId IS NULL` rows, and there's no persisted production
+  database to migrate (schema lives entirely in `init.sql`/seeds,
+  applied fresh per environment — see `IMPLEMENTATION_LOG.md`).
+  `Ingredient.TypeId` intentionally remains nullable at the DB layer;
+  this ticket only closes the gap in the one UI code path that
+  previously created untyped ingredients silently.
+- Verified: new `src/views/__tests__/RecipeForm.spec.ts` (first test
+  file for this component) — 4 tests: no picker for an exact-match
+  name; picker lists root categories only (excludes a non-root
+  category); submit is blocked with an alert when a category isn't
+  chosen; submit creates the ingredient with the selected category's
+  `fallbackTypeId`. `npm run build`/`lint`/`test` (41/41 frontend tests)
+  and `dotnet test` (11/11, no backend changes) all pass. Live
+  docker-compose + MariaDB run: `POST /api/ingredient` with a resolved
+  fallback `typeId` returns a fully-typed ingredient, confirmed visible
+  (non-null `typeName`) via `GET /api/ingredient`.
+
+---

@@ -91,6 +91,16 @@
     </button>?
   </span>
 
+  <!-- Ticket 10: a brand-new ingredient (no existing exact match) needs a
+       category so its auto-created IngredientType isn't NULL/invisible in
+       Advanced Search; reuses each category's Ticket 6 FallbackTypeId. -->
+  <select v-if="needsCategory[index]" v-model.number="ri.categoryId" required class="new-ingredient-category">
+    <option disabled :value="null">New ingredient — select a category</option>
+    <option v-for="category in rootCategories" :key="category.id" :value="category.id">
+      {{ category.name }}
+    </option>
+  </select>
+
   <input type="number" v-model.number="ri.amount" placeholder="Amount" />
 
   <select v-model="ri.unitId" required>
@@ -131,6 +141,7 @@ import { useCategoryStore } from '@/stores/categoryStore'
 import { useTagStore } from '@/stores/tagStore'
 import { useToolStore } from '@/stores/toolStore'
 import { useIngredientStore } from '@/stores/ingredientStore'
+import { useIngredientCategoryStore } from '@/stores/ingredientCategoryStore'
 import { useUnitStore } from '@/stores/unitStore'
 import { findClosestMatch } from '@/utils/similarity'
 import type { RecipeCreateDto } from "../interfaces/recipe";
@@ -140,12 +151,21 @@ const categoryStore = useCategoryStore()
 const tagStore = useTagStore()
 const toolStore = useToolStore()
 const ingredientStore = useIngredientStore()
+const ingredientCategoryStore = useIngredientCategoryStore()
 const unitStore = useUnitStore()
 const { categories } = storeToRefs(categoryStore);
 const { units } = storeToRefs(unitStore);
 const { ingredients } = storeToRefs(ingredientStore);
 const { tags } = storeToRefs(tagStore);
 const { tools } = storeToRefs(toolStore);
+
+// Ticket 10: root IngredientCategory list, so a brand-new ingredient typed
+// directly into a recipe can be assigned a category (and thus a non-NULL
+// TypeId via that category's Ticket 6 FallbackTypeId) instead of ending up
+// invisible in Advanced Search.
+const rootCategories = computed(() =>
+  ingredientCategoryStore.categories.filter((c) => c.parentCategoryId == null)
+)
 
 type FormIngredient = 
 {
@@ -154,6 +174,7 @@ type FormIngredient =
   amount: number | null
   unitId: number | null
   position: number
+  categoryId: number | null
 }
 
 
@@ -169,7 +190,7 @@ const form = reactive({
   tagIds: [] as number[],
   toolIds: [] as number[],
   ingredients: [
-    { ingredientId: null, ingredientName: '', amount: null as number | null, unitId: null as number | null, position: 1 } as FormIngredient
+    { ingredientId: null, ingredientName: '', amount: null as number | null, unitId: null as number | null, position: 1, categoryId: null } as FormIngredient
   ],
   instructions: [{ step: '', position: 1 }]
 })
@@ -181,7 +202,8 @@ const addIngredient = () => {
 	ingredientName: '',
     amount: null,
     unitId: null,
-    position: form.ingredients.length + 1
+    position: form.ingredients.length + 1,
+    categoryId: null
   } as FormIngredient)
 }
 const removeIngredient = (i: number) => form.ingredients.splice(i, 1)
@@ -203,6 +225,18 @@ const useSuggestion = (index: number) => {
   form.ingredients[index].ingredientName = suggestion
 }
 
+// Ticket 10: rows with a typed name that doesn't exactly match an existing
+// ingredient will be auto-created at submit time, so they need a category
+// chosen up front (used to resolve a non-NULL fallback TypeId) — otherwise
+// they end up invisible in every Advanced Search box.
+const needsCategory = computed(() =>
+  form.ingredients.map((ri) => {
+    const typed = ri.ingredientName?.trim()
+    if (!typed || ri.ingredientId != null) return false
+    return !ingredients.value.some((i) => i.name.toLowerCase() === typed.toLowerCase())
+  })
+)
+
 const addInstruction = () => {
   form.instructions.push({
     step: '',
@@ -218,6 +252,15 @@ const normalizePositions = () => {
 
 const submitForm = async () => {
   try {
+    // Ticket 10: block save if any new ingredient is missing its required
+    // category — otherwise it would be auto-created with TypeId = NULL and
+    // become invisible in every Advanced Search box.
+    const missingCategory = form.ingredients.some((ri, i) => needsCategory.value[i] && ri.categoryId == null)
+    if (missingCategory) {
+      alert('Please select a category for each new ingredient before saving.')
+      return
+    }
+
     for (const ri of form.ingredients) {
 	  if (ri.ingredientId == null && ri.ingredientName) {
 	    //Check if ingredient already exists
@@ -227,7 +270,9 @@ const submitForm = async () => {
 		}
 		else
 		{
-		  const newIng = await ingredientStore.createIngredient({ name: ri.ingredientName, pluralName: '' })
+		  const category = ingredientCategoryStore.categories.find((c) => c.id === ri.categoryId)
+		  const typeId = category?.fallbackTypeId ?? undefined
+		  const newIng = await ingredientStore.createIngredient({ name: ri.ingredientName, pluralName: '', typeId })
 		  ri.ingredientId = newIng.id
 		  ingredients.value.push(newIng)
 		}
@@ -255,7 +300,7 @@ const resetForm = () => {
   form.categoryIds = [];
   form.tagIds = [];
   form.toolIds = [];
-  form.ingredients = [{ ingredientId: null, ingredientName: '', amount: null, unitId: null, position: 1 }];
+  form.ingredients = [{ ingredientId: null, ingredientName: '', amount: null, unitId: null, position: 1, categoryId: null }];
   form.instructions = [{ step: '', position: 1 }];
 };
 
@@ -290,6 +335,7 @@ onMounted(async () => {
     tagStore.fetchAll(),
     toolStore.fetchAll(),
     ingredientStore.fetchAll(),
+    ingredientCategoryStore.fetchAll(),
     unitStore.fetchAll()
   ])
 })
