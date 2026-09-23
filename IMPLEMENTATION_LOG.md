@@ -340,3 +340,87 @@ pre-existing errors, all fixed in this session so CI starts green:
   this session; user chose to limit scope to Tickets 1-3.
 - Building a real Meal Planner backend/frontend — descoped instead (see
   Ticket 2 above); left as a future ticket if the feature is wanted.
+
+---
+
+## Ticket 9 — Add `IngredientCategory` above `IngredientType`
+
+**Closes:** the flat, uncategorized `IngredientType` list that blocked
+Ticket 8's per-category Advanced Search redesign. Design settled via a
+`/grill-me` session against `Proposed_Ingredient_Schema.md` (see
+`BACKLOG.md` Ticket 9 for the full decision log); this entry covers the
+implementation only.
+
+**Changed/new files:**
+- `swiftcookdb/Models/IngredientCategory.cs` (new) — `Id`, `Name`,
+  nullable self-referencing `ParentCategoryId`/`ParentCategory`,
+  `ChildCategories`/`IngredientTypes` nav collections.
+- `swiftcookdb/Models/IngredientType.cs` — added required `CategoryId`
+  + `Category` nav property.
+- `swiftcookdb/SwiftCookDbContext.cs` — new `DbSet<IngredientCategory>`;
+  both new FKs (`IngredientCategory.ParentCategoryId` self-ref,
+  `IngredientType.CategoryId`) configured with `DeleteBehavior.Restrict`
+  (not `Cascade`) so a future category delete can't silently cascade
+  through types/ingredients.
+- `swiftcookapi/Dtos/IngredientCategoryDto.cs` (new); `IngredientTypeDto`
+  and `IngredientTypeCreateDto` gained `CategoryId`
+  (`IngredientTypeCreateDto`'s is optional).
+- `swiftcookapi/Controllers/IngredientCategoryController.cs` (new) —
+  read-only: `GET /ingredientcategory`, `GET /ingredientcategory/{id}`,
+  `GET /ingredientcategory/{id}/types` (the last for Ticket 8). No
+  create/update/delete — deferred per the settled design.
+- `swiftcookapi/Controllers/IngredientTypeController.cs` — `Create` now
+  defaults `CategoryId` to the "Miscellaneous" category (looked up by
+  name, not a hardcoded Id) when the caller doesn't supply one; `Update`
+  now explicitly sets `Name`/`CategoryId` instead of a blind
+  `_mapper.Map`. Also fixed a **pre-existing latent bug** found along
+  the way: `Create`'s old `_mapper.Map<IngredientTypeDto>(type)` would
+  have thrown at runtime (no such AutoMapper map existed) — replaced
+  with manual DTO construction.
+- `swiftcookapi/Mappings/MappingProfile.cs` — added
+  `IngredientCategory → IngredientCategoryDto`; `CategoryId` is ignored
+  in the `IngredientTypeCreateDto → IngredientType` map (resolved
+  explicitly in the controller instead, to support the
+  default-to-Miscellaneous logic).
+- `swiftcookdb/init.sql` — new `IngredientCategory` table (self-FK,
+  `ON DELETE RESTRICT`) ahead of `IngredientType`; `IngredientType`
+  gained `CategoryId INT NOT NULL` + FK (`ON DELETE RESTRICT`).
+- `swiftcookdb/seeds/2-IngredientCategory.sql` (new) — 7 categories (6
+  families: Carbs/Protein/Dairy/Produce/Pantry/Cocktail + 1
+  Miscellaneous catch-all), all root-level.
+- `swiftcookdb/seeds/3-IngredientType.sql` (renamed from
+  `2-IngredientType.sql`) — all 29 rows backfilled with `CategoryId`
+  per family. Subsequent seed files renumbered to match
+  (`4-Category.sql`, `5-Tag.sql`, `6-Ingredient.sql`, `7-Cocktails.sql`,
+  `8-Tool.sql`).
+- `docker-compose.yml` — `docker-entrypoint-initdb.d` mount
+  paths/numbers updated to match the renumbered seed files (MariaDB
+  runs init scripts in lexicographic order by mount filename).
+- `swiftcookui/src/interfaces/ingredientType.ts` — added `categoryId`
+  to both DTOs; made it **optional** on `IngredientTypeDto` because
+  `ingredientStore.ts`'s `getIngredientsGroupedByTypeWithNames` getter
+  constructs a synthetic type object from denormalized fields with no
+  real category data available (Ticket 8 will rework this properly).
+- `swiftcookui/src/interfaces/ingredientCategory.ts` (new) —
+  `IngredientCategoryDto`.
+- `swiftcookui/src/stores/ingredientCategoryStore.ts` (new) — read-only
+  `fetchAll()` against `GET /ingredientcategory`, ready for Ticket 8.
+
+**Verification:**
+- `dotnet build SwiftCook.sln` — 0 errors/warnings.
+- `dotnet test swiftcookapi.tests\swiftcookapi.tests.csproj` — 11/11
+  passing, unaffected (the in-memory test context never instantiates
+  `IngredientType`).
+- `npm run build` / `npm run lint` / `npm run test` — 0 errors, 16/16
+  tests passing (one fix needed: `categoryId` made optional in
+  `IngredientTypeDto`, see above).
+- End-to-end: ran the real `mariadb` + `swiftcookapi` containers via
+  `docker compose up --build` against a fresh volume, then queried the
+  live API — confirmed 7 categories, all 29 types correctly
+  categorized, and `GET /ingredientcategory/2/types` correctly returns
+  only the 5 Protein-family types. Also confirmed the FK actively
+  rejects an invalid `CategoryId` (MariaDB error 1452).
+
+**Not in this ticket (left for Ticket 8):** `AdvancedSearch.vue` itself
+is untouched — still renders one box per `IngredientType`. Ticket 8 is
+the actual UI consumer of this new hierarchy.

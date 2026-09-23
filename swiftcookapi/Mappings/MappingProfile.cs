@@ -14,6 +14,8 @@ public class MappingProfile : Profile
             src.Type != null ? src.Type.Name : null));
         CreateMap<Unit, UnitDto>();
 
+        CreateMap<IngredientCategory, IngredientCategoryDto>();
+
         // Recipe
         CreateMap<Recipe, RecipeReadDto>()
             .ForMember(dest => dest.Categories, opt => opt.MapFrom(src =>
@@ -70,7 +72,8 @@ public class MappingProfile : Profile
         CreateMap<CategoryCreateDto, Category>();
         CreateMap<TagCreateDto, Tag>();
         CreateMap<ToolCreateDto, Tool>();
-        CreateMap<IngredientTypeCreateDto, IngredientType>();
+        CreateMap<IngredientTypeCreateDto, IngredientType>()
+            .ForMember(dest => dest.CategoryId, opt => opt.Ignore());
         CreateMap<UnitCreateDto, Unit>();
         CreateMap<IngredientCreateDto, Ingredient>()
             .ForMember(dest => dest.Type, opt => opt.Ignore());

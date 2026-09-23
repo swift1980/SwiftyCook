@@ -12,6 +12,7 @@ namespace SwiftCookDb
         public DbSet<Tool> Tools { get; set; }
         public DbSet<Ingredient> Ingredients { get; set; }
         public DbSet<IngredientType> IngredientTypes { get; set; }
+        public DbSet<IngredientCategory> IngredientCategories { get; set; }
         public DbSet<Unit> Units { get; set; }
         public DbSet<Recipe> Recipes { get; set; }
         public DbSet<RecipeCategory> RecipeCategories { get; set; }
@@ -33,6 +34,7 @@ namespace SwiftCookDb
             modelBuilder.Entity<Tool>().ToTable("Tool");
             modelBuilder.Entity<Ingredient>().ToTable("Ingredient");
             modelBuilder.Entity<IngredientType>().ToTable("IngredientType");
+            modelBuilder.Entity<IngredientCategory>().ToTable("IngredientCategory");
             modelBuilder.Entity<Unit>().ToTable("Unit");
             modelBuilder.Entity<Recipe>().ToTable("Recipe");
             modelBuilder.Entity<RecipeCategory>().ToTable("RecipeCategory");
@@ -57,6 +59,22 @@ namespace SwiftCookDb
                 .WithMany(t => t.Ingredients)
                 .HasForeignKey(i => i.TypeId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Additive hierarchy layer above IngredientType (Ticket 9). Restrict (not
+            // Cascade) so deleting a category can't silently wipe out ingredient types
+            // (and transitively, ingredients) beneath it — category CRUD is deferred
+            // anyway, so this only matters for future admin tooling.
+            modelBuilder.Entity<IngredientCategory>()
+                .HasOne(c => c.ParentCategory)
+                .WithMany(c => c.ChildCategories)
+                .HasForeignKey(c => c.ParentCategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<IngredientType>()
+                .HasOne(t => t.Category)
+                .WithMany(c => c.IngredientTypes)
+                .HasForeignKey(t => t.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

@@ -39,9 +39,10 @@ services:
       # Schema + seed scripts (always mounted, only run if DB is new)
       - ./swiftcookdb/init.sql:/docker-entrypoint-initdb.d/1-init.sql
       - ./swiftcookdb/seeds/1-Unit.sql:/docker-entrypoint-initdb.d/2-units.sql
-      - ./swiftcookdb/seeds/2-IngredientType.sql:/docker-entrypoint-initdb.d/3-ingredienttype.sql
-      - ./swiftcookdb/seeds/3-Category.sql:/docker-entrypoint-initdb.d/4-category.sql
-      - ./swiftcookdb/seeds/4-Tag.sql:/docker-entrypoint-initdb.d/5-tags.sql
-      - ./swiftcookdb/seeds/5-Ingredient.sql:/docker-entrypoint-initdb.d/6-ingredient.sql
-      - ./swiftcookdb/seeds/6-Cocktails.sql:/docker-entrypoint-initdb.d/7-cocktail.sql
-      - ./swiftcookdb/seeds/7-Tool.sql:/docker-entrypoint-initdb.d/8-tool.sql
+      - ./swiftcookdb/seeds/2-IngredientCategory.sql:/docker-entrypoint-initdb.d/3-ingredientcategory.sql
+      - ./swiftcookdb/seeds/3-IngredientType.sql:/docker-entrypoint-initdb.d/4-ingredienttype.sql
+      - ./swiftcookdb/seeds/4-Category.sql:/docker-entrypoint-initdb.d/5-category.sql
+      - ./swiftcookdb/seeds/5-Tag.sql:/docker-entrypoint-initdb.d/6-tags.sql
+      - ./swiftcookdb/seeds/6-Ingredient.sql:/docker-entrypoint-initdb.d/7-ingredient.sql
+      - ./swiftcookdb/seeds/7-Cocktails.sql:/docker-entrypoint-initdb.d/8-cocktail.sql
+      - ./swiftcookdb/seeds/8-Tool.sql:/docker-entrypoint-initdb.d/9-tool.sql

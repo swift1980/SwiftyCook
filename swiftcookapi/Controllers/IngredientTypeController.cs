@@ -21,14 +21,14 @@ namespace swiftcookapi.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<IngredientTypeDto>>> GetAll() =>
             await _context.IngredientTypes
-                .Select(t => new IngredientTypeDto { Id = t.Id, Name = t.Name })
+                .Select(t => new IngredientTypeDto { Id = t.Id, Name = t.Name, CategoryId = t.CategoryId })
                 .ToListAsync();
 
         [HttpGet("{id}")]
         public async Task<ActionResult<IngredientTypeDto>> GetById(int id)
         {
             var type = await _context.IngredientTypes
-                .Select(t => new IngredientTypeDto { Id = t.Id, Name = t.Name })
+                .Select(t => new IngredientTypeDto { Id = t.Id, Name = t.Name, CategoryId = t.CategoryId })
                 .FirstOrDefaultAsync(t => t.Id == id);
 
             return type == null ? NotFound() : type;
@@ -57,9 +57,18 @@ namespace swiftcookapi.Controllers
         public async Task<ActionResult<IngredientTypeDto>> Create(IngredientTypeCreateDto dto)
         {
             var type = _mapper.Map<IngredientType>(dto);
+
+            // Default to the "Miscellaneous" category when none is specified (Ticket 9:
+            // IngredientType.CategoryId is NOT NULL, so every type must resolve to one).
+            type.CategoryId = dto.CategoryId ?? await _context.IngredientCategories
+                .Where(c => c.Name == "Miscellaneous")
+                .Select(c => c.Id)
+                .FirstOrDefaultAsync();
+
             _context.IngredientTypes.Add(type);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = type.Id }, _mapper.Map<IngredientTypeDto>(type));
+            return CreatedAtAction(nameof(GetById), new { id = type.Id },
+                new IngredientTypeDto { Id = type.Id, Name = type.Name, CategoryId = type.CategoryId });
         }
 
         [HttpPut("{id}")]
@@ -67,7 +76,8 @@ namespace swiftcookapi.Controllers
         {
             var type = await _context.IngredientTypes.FindAsync(id);
             if (type == null) return NotFound();
-            _mapper.Map(dto, type);
+            type.Name = dto.Name;
+            if (dto.CategoryId.HasValue) type.CategoryId = dto.CategoryId.Value;
             await _context.SaveChangesAsync();
             return NoContent();
         }

@@ -11,9 +11,32 @@ sidebar but not real (Shopping List, Meal Planner) plus process gaps already
 flagged in `REVIEW.md` that remain open. Each ticket is scoped to be an
 independent PR; suggested order is noted per ticket.
 
-**Status:** Tickets 1, 2, 3, and 4 are now implemented (see
-`IMPLEMENTATION_LOG.md`). Ticket 5 (Cocktail ingredient search) is open,
-added after a grill-me review of README Functionality 2.
+**Status:** Tickets 1, 2, 3, 4, and 9 are now implemented (see
+`IMPLEMENTATION_LOG.md` for 1-4; Ticket 9 below for its own resolution
+summary). Ticket 8 (ingredient category hierarchy UI) has a settled
+design (grill-me) and is next up for implementation. Ticket 5 (Cocktail
+ingredient search), Ticket 6 (manual ingredient entry), Ticket 7 (fuzzy
+ingredient-name matching), and Ticket 10 (pre-existing `RecipeForm.vue`
+untyped-ingredient bug) are open.
+
+**Suggested priority order (open tickets):**
+1. ~~**Ticket 9**~~ — ✅ implemented (`IngredientCategory` schema +
+   automatic backfill of the 6 root categories + read-only `GET
+   /ingredientcategory` endpoint). Was blocking Ticket 8.
+2. **Ticket 8** — rewire `AdvancedSearch.vue` to render one box per
+   `IngredientCategory` instead of per `IngredientType`. Design fully
+   settled this session (see Ticket 8). Hard-depends on Ticket 9.
+3. **Ticket 6** — implement manual entry against the category-box layout
+   from Ticket 8 (including the per-category "Miscellaneous" type
+   fallback for newly-created ingredients). Depends on 8 + 9.
+4. **Ticket 7** — fuzzy/near-duplicate matching. Its own scope depends on
+   Ticket 6's manual-entry flow existing to extend, though the
+   `RecipeForm.vue` half could start independently/earlier if desired.
+5. **Ticket 5** — Cocktails ingredient search. Fully independent of
+   6/7/8/9/10 (different view, no shared code path) — can be picked up
+   in parallel at any point without waiting on the above.
+6. **Ticket 10** — fix the pre-existing `RecipeForm.vue` untyped-
+   ingredient bug. Independent bug fix; can be picked up any time.
 
 ---
 
@@ -182,3 +205,312 @@ filtering at all.
 scope/priority with the user before starting, since this is net-new
 backend work rather than a wiring fix.
 
+---
+
+## Ticket 6: Allow manual entry of ingredients in Ingredient Search
+
+**Problem:** The Advanced Search ingredient boxes (`AdvancedSearch.vue`)
+only accept ingredients that already exist in `ingredientStore` — the
+text input is matched against a `<datalist>` of known ingredient names
+(`addIngredient()` requires an exact case-insensitive match via
+`ingredientStore.getIngredientsByTypeId(typeId).find(...)`), and any value
+that doesn't match a known ingredient is silently discarded (`inputs[typeId]
+= ''` still runs, with no feedback to the user). Today, users must also
+know which `IngredientType` box a given ingredient belongs to before they
+can even attempt to type it — there's no way to just type an ingredient
+name and have it resolved/added regardless of type.
+
+**Purpose (clarified via grill-me, this session):** The actual goal of
+manual entry is a **quick, type-agnostic way to add an ingredient by
+name** — the user should be able to type any ingredient name into a
+single field and have it recognized/added without first navigating to
+the specific `IngredientType` box it happens to live in. This is distinct
+from (and does not require) per-type-box exact matching as it works
+today.
+
+**Decisions settled this session:**
+- **Create-on-the-fly, not free-text search.** An unmatched typed name is
+  created as a real `Ingredient` row via the existing `POST /ingredient`
+  endpoint (no backend changes needed there) and becomes a normal,
+  reusable ingredient — not a one-off text filter requiring new backend
+  matching-by-name logic.
+- **Scope: Recipes' Advanced Search only.** Cocktails has no ingredient
+  UI yet (see Ticket 5, still open) — extending manual entry there is
+  out of scope until Ticket 5 ships.
+- **New `IngredientType` creation is out of scope.** Manual entry only
+  adds ingredients under types that already exist; creating a brand-new
+  type (which would need a new box to appear) is left for a future
+  ticket if ever needed.
+- **Explicit confirm step required**, via an inline affordance (e.g.
+  "+ Add '‹name›' as new ingredient" appearing near the input once no
+  match is found) — not silent creation on Enter. Unlike the existing
+  silent-creation precedent in `RecipeForm.vue:205` (committed as part of
+  saving a recipe), a search box is used for quick/throwaway queries, so
+  silently creating on every typo would litter the ingredient list.
+- **Exact-match dedup only** (case-insensitive), matching the
+  `RecipeForm.vue` precedent. No fuzzy/near-duplicate detection in this
+  ticket — tracked separately as Ticket 7.
+- **`PluralName` sent as `''`** on creation, matching the `RecipeForm.vue`
+  precedent — no second input field for plural form in what should be a
+  quick type-and-add interaction.
+- **No visual "new" badge** on the resulting tag — once created, it's a
+  normal ingredient like any other; a permanent "new" marker would be
+  misleading on a later visit.
+
+**Open follow-up (settled this session, see Ticket 8/9 grill-me):**
+Ticket 8's redesign means `AdvancedSearch.vue` will render one box per
+`IngredientCategory` (not per `IngredientType`), spanning multiple types
+per box (e.g. "Protein" spans Meat/Poultry/Seafood/Plant Protein/Egg).
+When a user creates a new ingredient inside a category box, it needs a
+specific `IngredientType` assigned — decided as: **default to a fixed
+per-category "Miscellaneous" type** (e.g. one catch-all type per
+category, auto-assigned, no extra prompt). Two alternatives were
+rejected: leaving `TypeId` null (matches the existing `RecipeForm.vue`
+precedent, but recreates the pre-existing bug where untyped ingredients
+are invisible in every box — see Ticket 10) and prompting for a specific
+type at creation (reintroduces the exact type-picking friction this
+ticket exists to remove). The created ingredient remains fully
+re-typeable later via the existing `PUT /ingredient`.
+
+**Scope:**
+- Redesign ingredient entry/matching in `AdvancedSearch.vue` to resolve
+  a typed name against ingredients of *any* type within the current
+  category box (per Ticket 8's category-box redesign), not just a single
+  `IngredientType`.
+- On no match: show the inline "+ Add '‹name›' as new ingredient"
+  confirm affordance; on confirm, call
+  `ingredientStore.createIngredient({ name, pluralName: '', typeId })`
+  using that category's fixed "Miscellaneous" type, and add the result
+  as a normal selected tag.
+- Add/adjust unit tests (`useIngredientSearch.spec.ts`,
+  `AdvancedSearch.vue` if component tests exist) covering the manual-entry
+  and confirm-step paths.
+
+**Order:** Depends on Tickets 8 and 9 shipping first — needs the
+category-box layout and the `IngredientCategory`/per-category
+"Miscellaneous" type to exist before this can be implemented.
+
+---
+
+## Ticket 7: Add fuzzy/near-duplicate matching for ingredient creation
+
+**Problem:** Both the existing `RecipeForm.vue:205` ingredient-creation
+flow and Ticket 6's manual-entry search flow only dedup by exact,
+case-insensitive name match. A user typing "Tomatoe" when "Tomato"
+already exists gets a second, near-duplicate `Ingredient` row instead of
+a suggestion to use the existing one. Flagged during Ticket 6's grill-me
+session as an explicit reminder for future work, not in scope for
+Ticket 6 itself.
+
+**Scope:** Add fuzzy/similarity matching (e.g. Levenshtein distance or
+similar) when resolving a typed ingredient name, surfacing "Did you mean
+'‹existing name›'?" before falling through to creation, in both
+`RecipeForm.vue` and the Ticket 6 manual-entry flow.
+
+**Order:** Depends on Ticket 6 landing first for the manual-entry flow to
+extend; can otherwise start independently against `RecipeForm.vue`.
+
+---
+
+## Ticket 8: Rewire `AdvancedSearch.vue` to render one box per `IngredientCategory` — ✅ Design settled (grill-me)
+
+**Problem:** `AdvancedSearch.vue` renders one box per `IngredientType`
+(`typeBoxes` = `ingredientStore.getIngredientsGroupedByTypeWithNames`,
+one `<div class="advanced-search__field">` per group) — so today's UI
+scales 1:1 with however many `IngredientType` rows exist in the database.
+`IngredientType` is fully user-creatable via `IngredientTypeController`
+(`POST /ingredienttype`, no fixed/seeded list), so there's no upper bound
+enforced on how many boxes could appear, and no distinction between a
+handful of broad, commonly-searched types (e.g. Protein, Carbs,
+Vegetable) versus narrow or rarely-used ones.
+
+**Confirmed against current schema/seed data
+(`swiftcookdb/init.sql`, `swiftcookdb/seeds/2-IngredientType.sql`,
+`.../5-Ingredient.sql`):** this is not a hypothetical future-scale
+concern — it's already real today. `2-IngredientType.sql` seeds **29**
+`IngredientType` rows against only **34** `Ingredient` rows
+(`5-Ingredient.sql`), meaning `AdvancedSearch.vue` would already render
+up to 29 boxes once ingredients exist across all seeded types. The seed
+file's own blank-line grouping strongly implies an *intended* six-family
+structure:
+- Flour, Grain, Pasta, Rice, Legume → "Carbs"
+- Meat, Poultry, Seafood, Plant Protein, Egg → "Protein"
+- Dairy, Cheese, Butter, Yogurt, Non-Dairy Milk → "Dairy"
+- Vegetable, Fruit, Herb, Spice → "Produce"
+- Oil, Fat, Sweetener, Salt, Condiment → "Pantry"
+- Spirit, Liqueur, Bitter, Mixer, Garnish → "Cocktail ingredients"
+
+**Design decisions settled this session (grill-me, following Ticket 9):**
+- **Box per root `IngredientCategory` (6 boxes), not box per type.**
+  Collapsing to category-level boxes is the actual fix — each box's
+  autocomplete/datalist pulls ingredients from *all* child types within
+  that category. Keeping 29 type-boxes just visually grouped under
+  category headers (accordion-style) was explicitly rejected — it
+  doesn't reduce box count, which was the whole problem. The underlying
+  `IngredientType` is still stored per-ingredient for filtering/display;
+  it just stops being the box-granularity unit.
+- **Kept as a separate ticket from Ticket 9**, even though Ticket 9's
+  schema work directly enables this one — matches how every other
+  ticket in this backlog is scoped (one PR-sized ticket each). Ticket 9
+  is backend/data-model (schema, backfill, read endpoint); this ticket
+  is the frontend consumer. Ticket 8 **hard-depends on Ticket 9**
+  shipping first (needs `GET /ingredientcategory` and the `CategoryId`
+  backfill to exist).
+- Search semantics are unaffected: `/recipe/search/ingredients` still
+  resolves to specific ingredient IDs regardless of which box they were
+  selected from — no backend search-contract change needed here, only
+  how `AdvancedSearch.vue` groups/displays selection boxes.
+
+**Scope:**
+- Change `typeBoxes` in `AdvancedSearch.vue` to group by
+  `IngredientCategory` (via the new `GET /ingredientcategory` +
+  `IngredientType.CategoryId`) instead of by `IngredientType` directly.
+- Each category box's `<datalist>`/autocomplete options span all
+  ingredients across that category's child types.
+- Selected ingredient tags may still show their specific `IngredientType`
+  (e.g. as a small label) for clarity, even though the box itself is
+  category-scoped.
+- Update/add tests covering the new category-level grouping.
+
+**Order:** Hard dependency on Ticket 9 (schema + backfill + read
+endpoint must exist first).
+
+---
+
+## Ticket 9: Add `IngredientCategory` above `IngredientType` — ✅ Implemented
+
+**Resolution:** Implemented as designed below. `IngredientCategory`
+table added (`swiftcookdb/init.sql`, self-referencing FK,
+`ON DELETE RESTRICT`), seeded with 7 root categories (6 families +
+"Miscellaneous") via `seeds/2-IngredientCategory.sql`. `IngredientType.
+CategoryId` (`NOT NULL`, FK→`IngredientCategory`, `RESTRICT`) added and
+all 29 existing types backfilled in `seeds/3-IngredientType.sql`
+(renamed/renumbered along with all later seed files and
+`docker-compose.yml`'s mount order). New read-only
+`IngredientCategoryController` (`GET /ingredientcategory`, `GET
+/ingredientcategory/{id}`, `GET /ingredientcategory/{id}/types` — the
+last one for Ticket 8's consumption). `IngredientTypeController.Create`
+now defaults `CategoryId` to "Miscellaneous" when not specified.
+Verified via `dotnet build`/`dotnet test` (11/11 pass), `npm run build`/
+`lint`/`test` (16/16 pass), and a live MariaDB + API docker-compose run
+confirming correct seeding and endpoint responses end-to-end. Frontend
+gained a read-only `ingredientCategoryStore.ts` and `IngredientCategoryDto`
+ready for Ticket 8 to consume; `AdvancedSearch.vue` itself is untouched
+(that's Ticket 8's job).
+
+**Problem:** `IngredientType` today is a single flat, user-creatable list
+(`IngredientTypeController`, `POST /ingredienttype`) with no hierarchy —
+e.g. "Beef", "Chicken", and "Pork" would each be their own separate
+`IngredientType`, with no way to express that they're all "Protein" at a
+higher level. This flat model is also what drives Ticket 8's one-box-
+per-type UI concern, since every distinct type (however narrow) currently
+earns its own Advanced Search box.
+
+**Reference document:** `Proposed_Ingredient_Schema.md` was the design
+starting point, but was explicitly mined for one idea only — its
+self-referencing category hierarchy — not adopted wholesale. It also has
+known issues (broken DDL, an internal inconsistency between dropped
+`Allergen` tables and prose still recommending an allergen model) and is
+being treated purely as design input, not literal SQL to run; per user
+decision this session, the doc itself will not be revised — its ideas
+are captured here instead. Its `Variant`/`Brand`/`IngredientProduct`/
+`ProductNutrition`/`ProductPrice`/`IngredientNutrition`/
+`IngredientConversion`/`IngredientSubstitution`/`IngredientAlias` layers
+are explicitly **out of scope** for this ticket (no immediate need, no
+benefit to the search-box problem) — logged only as possible future
+tickets if ever wanted, not committed to.
+
+**Design decisions settled this session (grill-me, "using
+Proposed_Ingredient_Schema.md to solve hierarchy grouping problem"):**
+- **Adopt the doc's hierarchy idea, not a flat 2-level group.** Per user
+  decision: today's 29-type flat list is a *symptom* of the existing
+  schema's lack of hierarchy support, not evidence that 2 levels is
+  sufficient forever — so build a genuinely self-referencing
+  `IngredientCategory` (unlimited depth), matching the doc's design
+  principle, rather than a simpler flat `IngredientTypeGroup`.
+- **Layer above `IngredientType`, don't replace it.** `IngredientType`
+  keeps its existing table/columns/FKs exactly as today (`Ingredient.
+  TypeId` unchanged). New: `IngredientCategory(Id, Name, ParentCategoryId
+  NULL FK→self)` and `IngredientType.CategoryId` (FK→`IngredientCategory`,
+  see NOT NULL decision below). Fully additive — no changes needed to
+  `IngredientController`, `IngredientTypeController`'s existing
+  endpoints, or `AdvancedSearch.vue`'s per-`typeId` selection logic
+  underneath the new grouping layer.
+- **Seed only 2 levels for now.** Schema supports unlimited depth, but
+  only 6 root categories are seeded initially (matching the informal
+  families identified in Ticket 8's seed-data review), each directly
+  parenting today's 29 types. Deeper nesting is schema-supported but
+  unused until a real need appears — no speculative sub-splitting.
+- **Name it `IngredientCategory`** (not `IngredientTypeGroup` or other
+  alternatives) — matches the doc's own terminology, and the
+  `Ingredient` prefix already disambiguates it from the existing,
+  unrelated Recipe-level `Category` table (`swiftcookdb/init.sql`,
+  seeded with meal types: Breakfast/Dinner/Dessert/etc. via
+  `seeds/3-Category.sql`). No functional collision, but care needed in
+  code review/docs to not conflate the two.
+- **Backfill all 29 existing types automatically**, using the six-family
+  mapping already inferred from `seeds/2-IngredientType.sql`'s blank-line
+  grouping (Carbs / Protein / Dairy / Produce / Pantry / Cocktail — see
+  Ticket 8 for the exact type-to-family mapping). Ships with every
+  existing type already categorized — no manual admin pass required
+  before the feature is useful.
+- **`IngredientType.CategoryId` is `NOT NULL`**, with new types
+  (`POST /ingredienttype`) defaulting to a fixed "Miscellaneous"
+  category if no category is specified. Avoids ever needing
+  "uncategorized" special-casing in `AdvancedSearch.vue`.
+- **Full CRUD for categories is deferred.** Ship schema + the automatic
+  backfill + a read-only `GET /ingredientcategory` endpoint (needed by
+  Ticket 8's UI). No `POST`/`PUT`/`DELETE` for categories in this
+  ticket — the 6-category structure is expected to be stable, and
+  category-management UI is speculative work not needed to solve
+  Ticket 8's problem. Logged as deferred, not descoped — pick up if/when
+  there's real demand to add/rename/reparent categories.
+
+**Confirmed mechanics (`swiftcookdb/init.sql`, `swiftcookdb/Models/`):**
+schema is managed via raw `init.sql` + `seeds/*.sql` (no EF Core
+Migrations folder exists in the repo) with hand-written EF model POCOs
+(`swiftcookdb/Models/IngredientType.cs`, etc.) mapped on top. Adding
+`IngredientCategory` means: a new `CREATE TABLE` in `init.sql`, a new
+seed file for the 6 root categories + an `UPDATE IngredientType SET
+CategoryId = ...` backfill script, a new `IngredientCategory.cs` model +
+`CategoryId` column on `IngredientType.cs`, a `DbSet` addition on
+`SwiftCookDbContext`, and a new DTO + read-only controller — no EF
+Migrations tooling involved.
+
+**Order:** No hard dependency, but should be implemented together with
+(or just before) Ticket 8, which is the actual UI consumer of this
+schema change.
+
+---
+
+## Ticket 10: Fix pre-existing bug — `RecipeForm.vue` auto-created ingredients are invisible in Advanced Search
+
+**Problem:** Discovered incidentally during the Ticket 8/9 grill-me
+session (unrelated to those tickets' scope). `RecipeForm.vue`'s
+existing ingredient auto-creation flow
+(`submitForm()`, line ~205: `ingredientStore.createIngredient({ name:
+ri.ingredientName, pluralName: '' })`) sends **no `typeId`** — so any
+ingredient auto-created while saving a recipe ends up with `TypeId =
+NULL`. `ingredientStore.getIngredientsGroupedByTypeWithNames` (used by
+`AdvancedSearch.vue` to build its type boxes) explicitly skips untyped
+ingredients (`if (ingredient.typeId == null) continue`). Net effect:
+any ingredient a user types directly into a recipe (rather than picking
+from the existing list) silently becomes permanently invisible in every
+Advanced Search box — a pre-existing bug, present before any of this
+session's other tickets.
+
+**Scope:**
+- Decide/implement a fallback `TypeId` for `RecipeForm.vue`'s
+  auto-creation path, so newly-created ingredients are visible in
+  Advanced Search immediately. Ticket 9's per-category "Miscellaneous"
+  type fallback (settled for Ticket 6) is a natural pattern to reuse
+  here, though `RecipeForm.vue` doesn't have Ticket 8's category-box
+  context to infer *which* category's Miscellaneous type to use — needs
+  its own small design decision (e.g. a single global "Uncategorized"
+  type, vs. asking the user to pick a type inline in the recipe form).
+- Audit/backfill any already-created `Ingredient` rows with `TypeId =
+  NULL` in existing data, if applicable.
+
+**Order:** No dependency on other tickets — independent bug fix, though
+implementing it after Ticket 9 (once a "Miscellaneous type" pattern
+exists) may simplify the fix by giving it a ready-made fallback to reuse.

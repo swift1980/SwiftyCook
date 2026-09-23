@@ -1,0 +1,40 @@
+-- =========================================================
+-- SwiftCook Script
+-- Inserts Ingredient reference data if not already present
+-- Safe to run multiple times
+-- =========================================================
+INSERT IGNORE INTO Ingredient (Id, Name, PluralName, TypeId) VALUES
+(1, 'Egg', 'Eggs', 10),
+(2, 'Milk', 'Milk', 11),
+(3, 'Butter', 'Butter', 13),
+(4, 'Cheese', 'Cheeses', 12),
+(5, 'Flour', 'Flours', 1),
+(6, 'Sugar', 'Sugars', 22),
+(7, 'Salt', 'Salts', 23),
+(8, 'Pepper', 'Peppers', 16),
+(9, 'Garlic', 'Garlic', 18),
+(10, 'Onion', 'Onions', 16),
+(11, 'Tomato', 'Tomatoes', 16),
+(12, 'Potato', 'Potatoes', 16),
+(13, 'Carrot', 'Carrots', 16),
+(14, 'Chicken Breast', 'Chicken Breasts', 7),
+(15, 'Beef', 'Beef', 6),
+(16, 'Pork', 'Pork', 6),
+(17, 'Fish', 'Fish', 8),
+(18, 'Rice', 'Rice', 4),
+(19, 'Pasta', 'Pasta', 3),
+(20, 'Olive Oil', '', 20),
+(21,'Bourbon', '', 25),
+(22,'Sugar cube', 'Sugar cubes', 22),
+(23,'Angostura bitters', '', 27),
+(24,'Orange peel', 'Orange peels', 29),
+(25,'Tequila', '', 25),
+(26,'Triple sec', '', 26),
+(27,'Lime juice', '', 17),
+(28,'White rum', '', 25),
+(29,'Mint leaf', 'Mint leaves', 18),
+(30,'Soda water', '', 28),
+(31,'Gin', '', 25),
+(32,'Campari', '', 25),
+(33,'Sweet vermouth', '', 25),
+(34,'Orange slice', 'Orange slices', 17);

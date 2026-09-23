@@ -16,10 +16,22 @@ CREATE TABLE Tool (
     Name VARCHAR(50) UNIQUE,
 	IsGlass BIT
 );
+-- INGREDIENT CATEGORY
+-- Self-referencing hierarchy above IngredientType (Ticket 9). Only 2 levels are
+-- seeded today (6 families + Miscellaneous, all root-level), but ParentCategoryId
+-- supports deeper nesting later without a schema change.
+CREATE TABLE IngredientCategory (
+    Id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    Name VARCHAR(50) UNIQUE,
+    ParentCategoryId INT NULL,
+    CONSTRAINT FK_IngredientCategory_Parent FOREIGN KEY (ParentCategoryId) REFERENCES IngredientCategory(Id) ON DELETE RESTRICT
+);
 -- INGREDIENT TYPE
 CREATE TABLE IngredientType (
     Id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    Name VARCHAR(50) UNIQUE
+    Name VARCHAR(50) UNIQUE,
+    CategoryId INT NOT NULL,
+    CONSTRAINT FK_IngredientType_CategoryId FOREIGN KEY (CategoryId) REFERENCES IngredientCategory(Id) ON DELETE RESTRICT
 );
 -- INGREDIENT
 CREATE TABLE Ingredient (
