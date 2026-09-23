@@ -105,4 +105,17 @@ describe('useIngredientSearch', () => {
     await loadPage(2)
     expect(mockedApi.post).toHaveBeenCalledTimes(1) // loadPage was a no-op after clear
   })
+
+  it('posts to a custom endpoint when provided (Ticket 5 — Cocktails reuse)', async () => {
+    mockedApi.post.mockResolvedValueOnce({ data: page })
+
+    const { search } = useIngredientSearch('/cocktail/search/ingredients')
+    await search(params)
+
+    expect(mockedApi.post).toHaveBeenCalledWith('/cocktail/search/ingredients', {
+      ...params,
+      page: 1,
+      pageSize: 20,
+    })
+  })
 })

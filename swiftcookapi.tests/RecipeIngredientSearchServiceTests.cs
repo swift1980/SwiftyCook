@@ -247,5 +247,52 @@ namespace swiftcookapi.tests
             Assert.Equal(2, outcome.Result.TotalCount);
             Assert.Equal(2, outcome.Result.TotalPages);
         }
+
+        // ---------- CategoryId filter (Ticket 5 — Cocktails reuse this service) ----------
+
+        [Fact]
+        public async Task CategoryIdFilter_ExcludesRecipesOutsideThatCategory()
+        {
+            using var factory = new RecipeIngredientSearchTestContextFactory();
+            var service = CreateService(factory);
+
+            // Mandatory Egg(4) -> Cake + Omelette without a filter, but Omelette
+            // is tagged Dinner(2), not Cocktail(1) — filtering to Cocktail(1)
+            // should exclude it, leaving only Cake.
+            var request = new RecipeIngredientSearchRequestDto
+            {
+                MandatoryIngredientIds = new() { 4 },
+                OptionalIngredientIds = new(),
+                OptionalThreshold = 0,
+                CategoryId = 1
+            };
+
+            var outcome = await service.SearchAsync(request);
+
+            Assert.True(outcome.IsValid);
+            var item = Assert.Single(outcome.Result!.Items);
+            Assert.Equal(10, item.RecipeId); // Cake, not Omelette
+        }
+
+        [Fact]
+        public async Task NoCategoryIdFilter_IncludesRecipesAcrossAllCategories()
+        {
+            using var factory = new RecipeIngredientSearchTestContextFactory();
+            var service = CreateService(factory);
+
+            // Same query, no CategoryId — behaviour unchanged for existing
+            // (Recipes) callers: both Cake and Omelette match.
+            var request = new RecipeIngredientSearchRequestDto
+            {
+                MandatoryIngredientIds = new() { 4 },
+                OptionalIngredientIds = new(),
+                OptionalThreshold = 0
+            };
+
+            var outcome = await service.SearchAsync(request);
+
+            Assert.True(outcome.IsValid);
+            Assert.Equal(2, outcome.Result!.Items.Count);
+        }
     }
 }

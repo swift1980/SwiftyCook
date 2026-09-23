@@ -13,9 +13,9 @@ namespace swiftcookapi.tests
     ///   1 Flour, 2 Sugar, 3 Butter, 4 Egg, 5 Salt, 6 Vanilla
     ///
     /// Recipes:
-    ///   10 "Cake"     -> Flour(x2 units), Sugar, Butter, Egg     (distinct: 1,2,3,4)
-    ///   11 "Cookie"   -> Flour, Sugar, Butter                    (distinct: 1,2,3)
-    ///   12 "Omelette" -> Egg, Salt                               (distinct: 4,5)
+    ///   10 "Cake"     -> Flour(x2 units), Sugar, Butter, Egg     (distinct: 1,2,3,4)      Category: Cocktail(1)
+    ///   11 "Cookie"   -> Flour, Sugar, Butter                    (distinct: 1,2,3)         Category: Cocktail(1)
+    ///   12 "Omelette" -> Egg, Salt                               (distinct: 4,5)           Category: Dinner(2)
     /// </summary>
     public sealed class RecipeIngredientSearchTestContextFactory : IDisposable
     {
@@ -61,6 +61,15 @@ namespace swiftcookapi.tests
                 new Recipe { Id = 10, Name = "Cake" },
                 new Recipe { Id = 11, Name = "Cookie" },
                 new Recipe { Id = 12, Name = "Omelette" });
+
+            context.Categories.AddRange(
+                new Category { Id = 1, Name = "Cocktail" },
+                new Category { Id = 2, Name = "Dinner" });
+
+            context.RecipeCategories.AddRange(
+                new RecipeCategory { RecipeId = 10, CategoryId = 1 }, // Cake: Cocktail
+                new RecipeCategory { RecipeId = 11, CategoryId = 1 }, // Cookie: Cocktail
+                new RecipeCategory { RecipeId = 12, CategoryId = 2 }); // Omelette: Dinner (not Cocktail)
 
             context.RecipeIngredients.AddRange(
                 // Cake: Flour appears TWICE with different units (the 7a duplicate trap)

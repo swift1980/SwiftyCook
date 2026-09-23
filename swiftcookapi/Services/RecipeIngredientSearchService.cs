@@ -69,7 +69,11 @@ namespace swiftcookapi.Services
                 : request.PageSize;
 
             // --- Distinct (RecipeId, IngredientId): collapse UnitId-driven duplicates ---
+            // Optional CategoryId filter (Ticket 5): scopes the candidate recipe pool,
+            // e.g. Cocktails (CategoryId 1) reusing this same search pipeline.
             var distinctRecipeIngredients = _context.RecipeIngredients
+                .Where(ri => request.CategoryId == null
+                          || ri.Recipe.RecipeCategories.Any(rc => rc.CategoryId == request.CategoryId))
                 .Select(ri => new { ri.RecipeId, ri.IngredientId })
                 .Distinct();
 

@@ -26,4 +26,11 @@ public class RecipeIngredientSearchRequestDto
     /// Requested page size. Server clamps this to an allowed maximum.
     /// </summary>
     public int PageSize { get; set; } = 20;
+
+    /// <summary>
+    /// Optional Category filter (e.g. Cocktails = CategoryId 1). When set,
+    /// only recipes tagged with this category are considered. Null means no
+    /// filtering — used by the general Recipes search (Ticket 5).
+    /// </summary>
+    public int? CategoryId { get; set; }
 }

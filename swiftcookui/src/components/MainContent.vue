@@ -9,24 +9,24 @@
         <button v-if="route.name === 'Recipes'" class="category-btn" @click="toggleCategories">
           Categories
         </button>
-        <button v-if="route.name === 'Recipes'" class="advanced-btn" @click="toggleAdvancedSearch">
+        <button v-if="isIngredientSearchRoute" class="advanced-btn" @click="toggleAdvancedSearch">
           {{ showAdvancedSearch ? 'Hide Ingredient Search' : 'Search by Ingredient' }}
         </button>
       </div>
 
-      <AdvancedSearch v-if="route.name === 'Recipes' && showAdvancedSearch"
+      <AdvancedSearch v-if="isIngredientSearchRoute && showAdvancedSearch"
                       @search="onAdvancedSearch"
                       @clear="onAdvancedClear" />
 
       <!-- Pagination controls — visible only when server results are active -->
-      <div v-if="route.name === 'Recipes' && ingredientSearch.results.value" class="pagination-controls">
-        <button :disabled="ingredientSearch.results.value.page <= 1"
-                @click="ingredientSearch.loadPage(ingredientSearch.results.value.page - 1)">
+      <div v-if="isIngredientSearchRoute && activeIngredientSearch.results.value" class="pagination-controls">
+        <button :disabled="activeIngredientSearch.results.value.page <= 1"
+                @click="activeIngredientSearch.loadPage(activeIngredientSearch.results.value.page - 1)">
           ‹ Prev
         </button>
-        <span>Page {{ ingredientSearch.results.value.page }} of {{ ingredientSearch.results.value.totalPages }}</span>
-        <button :disabled="ingredientSearch.results.value.page >= ingredientSearch.results.value.totalPages"
-                @click="ingredientSearch.loadPage(ingredientSearch.results.value.page + 1)">
+        <span>Page {{ activeIngredientSearch.results.value.page }} of {{ activeIngredientSearch.results.value.totalPages }}</span>
+        <button :disabled="activeIngredientSearch.results.value.page >= activeIngredientSearch.results.value.totalPages"
+                @click="activeIngredientSearch.loadPage(activeIngredientSearch.results.value.page + 1)">
           Next ›
         </button>
       </div>
@@ -49,7 +49,7 @@
       <router-view v-slot="{ Component }">
         <component :is="Component"
                    v-bind="routeProps"
-                   v-on="route.name === 'Recipes' ? { retry: retrySearch } : {}" />
+                   v-on="isIngredientSearchRoute ? { retry: retrySearch } : {}" />
       </router-view>
     </div>
   </main>
@@ -73,7 +73,17 @@
   const selectedCategoryIds = ref<number[]>([])
   const lastParams = ref<IngredientSearchParams | null>(null)
 
-  const ingredientSearch = useIngredientSearch()
+  // Ticket 5: Cocktails reuse the same mandatory/optional/threshold ingredient
+  // search as Recipes, against their own endpoint (Cocktails are Recipes
+  // filtered server-side by category) — one composable instance per route so
+  // switching between them doesn't mix up results/pagination state.
+  const recipeIngredientSearch = useIngredientSearch('/recipe/search/ingredients')
+  const cocktailIngredientSearch = useIngredientSearch('/cocktail/search/ingredients')
+  const activeIngredientSearch = computed(() =>
+    route.name === 'Cocktails' ? cocktailIngredientSearch : recipeIngredientSearch
+  )
+  const isIngredientSearchRoute = computed(() => route.name === 'Recipes' || route.name === 'Cocktails')
+
   const nameSearch = useNameSearch()
 
   const categoryStore = useCategoryStore()
@@ -101,24 +111,24 @@
 
   function onAdvancedSearch(params: IngredientSearchParams) {
     lastParams.value = params
-    ingredientSearch.search(params, 1)
+    activeIngredientSearch.value.search(params, 1)
   }
 
   function onAdvancedClear() {
     lastParams.value = null
-    ingredientSearch.clear()
+    activeIngredientSearch.value.clear()
   }
 
   function retrySearch() {
-    if (lastParams.value) ingredientSearch.search(lastParams.value, 1)
+    if (lastParams.value) activeIngredientSearch.value.search(lastParams.value, 1)
   }
 
   const recipesProps = computed(() => ({
     nameQuery: nameQuery.value,
     selectedCategoryIds: selectedCategoryIds.value,
-    searchResults: ingredientSearch.results.value,
-    searchError: ingredientSearch.error.value,
-    searchLoading: ingredientSearch.loading.value,
+    searchResults: recipeIngredientSearch.results.value,
+    searchError: recipeIngredientSearch.error.value,
+    searchLoading: recipeIngredientSearch.loading.value,
     nameSearchResults: nameSearch.results.value,
     nameSearchError: nameSearch.error.value,
     nameSearchLoading: nameSearch.loading.value,
@@ -126,6 +136,9 @@
 
   const cocktailsProps = computed(() => ({
     nameQuery: nameQuery.value,
+    searchResults: cocktailIngredientSearch.results.value,
+    searchError: cocktailIngredientSearch.error.value,
+    searchLoading: cocktailIngredientSearch.loading.value,
   }))
 
   const routeProps = computed(() => {

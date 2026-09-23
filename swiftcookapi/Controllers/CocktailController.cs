@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SwiftCookDb;
 using SwiftCookDb.Models;
+using swiftcookapi.Services;
 
 namespace swiftcookapi.Controllers
 {
@@ -12,11 +13,20 @@ namespace swiftcookapi.Controllers
     {
         private readonly SwiftCookDbContext _context;
         private readonly IMapper _mapper;
+        private readonly IRecipeIngredientSearchService _ingredientSearchService;
 
-        public CocktailController(SwiftCookDbContext context, IMapper mapper)
+        // Cocktails are Recipes tagged with this fixed Category (see the
+        // hardcoded CategoryId == 1 filters below, predating this ticket).
+        private const int CocktailCategoryId = 1;
+
+        public CocktailController(
+            SwiftCookDbContext context,
+            IMapper mapper,
+            IRecipeIngredientSearchService ingredientSearchService)
         {
             _context = context;
             _mapper = mapper;
+            _ingredientSearchService = ingredientSearchService;
         }
 
         [HttpGet]
@@ -177,6 +187,29 @@ namespace swiftcookapi.Controllers
             _context.Recipes.Remove(recipe);
             await _context.SaveChangesAsync();
             return NoContent();
+        }
+
+        // Ticket 5: reuses the same mandatory/optional/threshold search as
+        // Recipes (RecipeIngredientSearchService), pinned to the Cocktail
+        // category — Cocktails are Recipes, so no new search logic needed.
+        [HttpPost("search/ingredients")]
+        [ProducesResponseType(typeof(PagedResultDto<RecipeSearchResultDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<PagedResultDto<RecipeSearchResultDto>>> SearchByIngredients(
+            [FromBody] RecipeIngredientSearchRequestDto request,
+            CancellationToken cancellationToken)
+        {
+            if (request == null)
+                return BadRequest("Request body is required.");
+
+            request.CategoryId = CocktailCategoryId;
+
+            var outcome = await _ingredientSearchService.SearchAsync(request, cancellationToken);
+
+            if (!outcome.IsValid)
+                return BadRequest(outcome.Error);
+
+            return Ok(outcome.Result);
         }
     }
 

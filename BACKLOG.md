@@ -11,12 +11,11 @@ sidebar but not real (Shopping List, Meal Planner) plus process gaps already
 flagged in `REVIEW.md` that remain open. Each ticket is scoped to be an
 independent PR; suggested order is noted per ticket.
 
-**Status:** Tickets 1, 2, 3, 4, 6, 7, 8, 9, and 10 are now implemented
-(see `IMPLEMENTATION_LOG.md` for 1-4; Tickets 6, 7, 8, 9, and 10 below
-for their own resolution summaries). Only Ticket 5 (Cocktail ingredient
-search) remains open.
+**Status:** All tickets (1-10) are now implemented (see
+`IMPLEMENTATION_LOG.md` for 1-4; Tickets 5-10 below for their own
+resolution summaries). No open tickets remain.
 
-**Suggested priority order (open tickets):**
+**Priority order (all implemented):**
 1. ~~**Ticket 9**~~ — ✅ implemented (`IngredientCategory` schema +
    automatic backfill of the 6 root categories + read-only `GET
    /ingredientcategory` endpoint). Was blocking Ticket 8.
@@ -32,9 +31,9 @@ search) remains open.
 5. ~~**Ticket 10**~~ — ✅ implemented (`RecipeForm.vue` now requires a
    category for brand-new ingredients, resolving a real `FallbackTypeId`
    instead of leaving `TypeId` NULL).
-6. **Ticket 5** — Cocktails ingredient search. Fully independent of
-   6/7/8/9/10 (different view, no shared code path) — the only ticket
-   left open.
+6. ~~**Ticket 5**~~ — ✅ implemented (Cocktails ingredient search,
+   mirroring Recipes' mandatory/optional/threshold backend search via a
+   shared `CategoryId`-filtered service).
 
 ---
 
@@ -171,7 +170,7 @@ in CI, not just locally.
 
 ---
 
-## Ticket 5: Add ingredient-combination search for Cocktails
+## Ticket 5: Add ingredient-combination search for Cocktails — ✅ Implemented
 
 **Problem:** README's Functionality 2 ("Searching of Recipes by Ingredient
 or combination of Ingredients, option for all ingredients or some
@@ -203,6 +202,50 @@ filtering at all.
 scope/priority with the user before starting, since this is net-new
 backend work rather than a wiring fix.
 
+**Resolution:** Chose "full mirror" (of three options presented) — full
+mandatory/optional/threshold backend search identical to Recipes,
+because Cocktails are actually `Recipe` rows filtered by `CategoryId ==
+1` (`CocktailController.cs`), so the existing
+`RecipeIngredientSearchService`/`AdvancedSearch.vue` pipeline could be
+reused almost entirely rather than building a parallel simpler model.
+- `RecipeIngredientSearchRequestDto.cs`: added optional `CategoryId`
+  (nullable `int`). `null` (default) preserves existing Recipes
+  behavior with no filtering.
+- `RecipeIngredientSearchService.cs`: `distinctRecipeIngredients` query
+  now filters by `ri.Recipe.RecipeCategories.Any(rc => rc.CategoryId ==
+  request.CategoryId)` when `CategoryId` is set, narrowing which
+  `RecipeId`s are considered before per-recipe aggregation.
+- `CocktailController.cs`: new `POST /api/cocktail/search/ingredients`
+  endpoint, reusing the shared `IRecipeIngredientSearchService` with
+  `CategoryId` pinned to the Cocktail category (`1`).
+- `useIngredientSearch.ts` composable: took an optional `endpoint`
+  parameter (default `/recipe/search/ingredients`) so Cocktails can
+  reuse it against `/cocktail/search/ingredients` without duplicating
+  the pagination/loading/error state logic.
+- `MainContent.vue`: two separate composable instances
+  (`recipeIngredientSearch`, `cocktailIngredientSearch`) rather than one
+  shared instance switching endpoints, to avoid any risk of
+  cross-contaminated pagination/results state between routes. An
+  `activeIngredientSearch` computed picks the right instance based on
+  the current route, and the existing "Search by Ingredient" button /
+  `AdvancedSearch` panel / pagination controls now render for both
+  Recipes and Cocktails routes.
+- `Cocktails.vue`: rewritten to mirror `Recipes.vue`'s
+  `displayItems`/`emptyState` pattern — prefers server ingredient-search
+  results (normalised via a new `normalise()` helper) when a search is
+  active, and falls back to the pre-existing client-side
+  `cocktailStore.getFilteredCocktails` name filter otherwise (Cocktails
+  has no backend name-search endpoint, unlike Recipes).
+- Verified: `dotnet build`/`dotnet test` (13/13 passing, incl. 2 new
+  `CategoryId`-filter tests against seeded Cocktail/Dinner categories);
+  `npm run build`/`lint`/`test` (47/47 passing, incl. new
+  `Cocktails.spec.ts` and a `useIngredientSearch.spec.ts` custom-endpoint
+  test); live `docker compose` + MariaDB check confirmed
+  `/api/cocktail/search/ingredients` returns only the seeded Mojito
+  cocktail for rum+mint and zero results for a food-only ingredient
+  (Chicken), while `/api/recipe/search/ingredients` (no `CategoryId`)
+  remains unaffected.
+
 ---
 
 ## Ticket 6: Allow manual entry of ingredients in Ingredient Search — ✅ Implemented
@@ -232,9 +275,10 @@ today.
   endpoint (no backend changes needed there) and becomes a normal,
   reusable ingredient — not a one-off text filter requiring new backend
   matching-by-name logic.
-- **Scope: Recipes' Advanced Search only.** Cocktails has no ingredient
-  UI yet (see Ticket 5, still open) — extending manual entry there is
-  out of scope until Ticket 5 ships.
+- **Scope: Recipes' Advanced Search only.** Cocktails had no ingredient
+  UI at the time (see Ticket 5, since implemented — Ticket 5 reused this
+  ticket's `AdvancedSearch.vue` panel as-is, so manual entry now applies
+  to Cocktails too with no extra work).
 - **New `IngredientType` creation is out of scope.** Manual entry only
   adds ingredients under types that already exist; creating a brand-new
   type (which would need a new box to appear) is left for a future

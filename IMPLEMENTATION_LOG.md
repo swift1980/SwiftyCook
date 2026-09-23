@@ -701,3 +701,91 @@ that silently produced NULL rows.
 
 **Not in this ticket:** Ticket 5 (Cocktails ingredient search) remains
 the only open backlog item, fully independent of this work.
+
+---
+
+## Ticket 5 (Backlog v2) — Add ingredient-combination search for Cocktails
+
+*(Not to be confused with the older "Ticket 5 — 'Use my cupboard' in
+Advanced Search" entry above, from Backlog v1 — the two used different
+numbering revisions. This closes `BACKLOG.md`'s Ticket 5, the final open
+item, making all tickets in that document implemented.)*
+
+**Closes:** Cocktails had no ingredient-combination search at all — only
+a client-side name filter — while Recipes had a full mandatory/optional/
+threshold Advanced Search backed by `/recipe/search/ingredients`. A
+grill-me session confirmed Cocktails are actually `Recipe` rows filtered
+by `CategoryId == 1` (`CocktailController.cs`), making a full mirror of
+the Recipes search cheap to add rather than requiring a separate model.
+
+**Design decision:** presented 3 options — (a) full mirror of Recipes'
+mandatory/optional/threshold search via a shared, `CategoryId`-filtered
+service, (b) a simpler cocktail-specific AND/OR model, (c) descope
+entirely. **Chose (a)**, the recommended option, since the existing
+`RecipeIngredientSearchService` already operates on the same
+`Recipe`/`RecipeIngredient` data Cocktails use — no new tables/services
+needed, just an optional category filter on the existing pipeline.
+
+**Backend changes:**
+- `swiftcookapi/Dtos/RecipeIngredientSearchRequestDto.cs` — added
+  optional `CategoryId` (nullable `int`). `null` (default) preserves
+  existing behavior for Recipes' callers.
+- `swiftcookapi/Services/RecipeIngredientSearchService.cs` — the
+  `distinctRecipeIngredients` query now filters by
+  `ri.Recipe.RecipeCategories.Any(rc => rc.CategoryId ==
+  request.CategoryId)` when `CategoryId` is set, before per-recipe
+  ingredient-count aggregation.
+- `swiftcookapi/Controllers/CocktailController.cs` — added
+  `IRecipeIngredientSearchService` DI and a new `POST
+  /api/cocktail/search/ingredients` endpoint that pins `CategoryId = 1`
+  (the seeded Cocktail category) and delegates to the shared service.
+- `swiftcookapi.tests/RecipeIngredientSearchTestContextFactory.cs` —
+  added `Category`/`RecipeCategory` seed rows (Cake+Cookie → Cocktail
+  category; Omelette → Dinner category) for the new filter tests.
+- `swiftcookapi.tests/RecipeIngredientSearchServiceTests.cs` — 2 new
+  tests: `CategoryIdFilter_ExcludesRecipesOutsideThatCategory` and
+  `NoCategoryIdFilter_IncludesRecipesAcrossAllCategories`.
+
+**Frontend changes:**
+- `swiftcookui/src/composables/useIngredientSearch.ts` — took an
+  optional `endpoint` parameter (default `/recipe/search/ingredients`)
+  so the same pagination/loading/error-state composable can be reused
+  against `/cocktail/search/ingredients` without duplication.
+- `swiftcookui/src/components/MainContent.vue` — replaced the single
+  `ingredientSearch` composable instance with two
+  (`recipeIngredientSearch`, `cocktailIngredientSearch`) plus an
+  `activeIngredientSearch` computed that selects based on the current
+  route — deliberately kept as two separate instances (rather than one
+  instance whose endpoint is switched) to avoid any risk of
+  cross-contaminated pagination/results state between routes. The
+  "Search by Ingredient" button, `AdvancedSearch` panel, and pagination
+  controls now render/react for both the Recipes and Cocktails routes.
+- `swiftcookui/src/views/Cocktails.vue` — rewritten to mirror
+  `Recipes.vue`'s `displayItems`/`emptyState` pattern: prefers server
+  ingredient-search results (normalised via a new `normalise()` helper)
+  when a search is active, and falls back to the pre-existing
+  client-side `cocktailStore.getFilteredCocktails` name filter otherwise
+  (Cocktails has no backend name-search endpoint, unlike Recipes'
+  `useNameSearch`). Also still surfaces the store's own fetch error
+  (`storeError`) as a fallback, preserving pre-existing behavior.
+
+**Verification:**
+- `dotnet test` — 13/13 passing (11 pre-existing + 2 new).
+- New `swiftcookui/src/views/__tests__/Cocktails.spec.ts` — first test
+  file for this component, 5 tests: browse-all fetch/render; client-side
+  name-query filtering; server ingredient-search results rendering;
+  empty-state messaging when a search returns zero cocktails; search
+  error display + retry-button emit.
+- `useIngredientSearch.spec.ts` — 1 new test verifying the custom
+  `endpoint` parameter.
+- `npm run build`/`lint`/`test` — 47/47 frontend tests passing.
+- End-to-end: ran a fresh `mariadb` + `swiftcookapi` docker-compose
+  stack. `POST /api/cocktail/search/ingredients` with rum+mint
+  (mandatory) returned only the seeded Mojito cocktail; the same
+  ingredients against `/api/recipe/search/ingredients` (no `CategoryId`)
+  also correctly matched it (Cocktails are Recipes); a food-only
+  ingredient (Chicken) against the Cocktails endpoint correctly returned
+  zero results.
+
+**Not in this ticket:** this was the final open item in `BACKLOG.md` —
+all tickets (1-10) are now implemented.

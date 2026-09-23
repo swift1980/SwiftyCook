@@ -3,7 +3,10 @@ import axios from 'axios'
 import api from '@/services/api'
 import type { IngredientSearchParams, PagedResultDto, RecipeSearchResultDto } from '@/interfaces/ingredientSearch'
 
-export function useIngredientSearch() {
+// Ticket 5: Cocktails reuse this same mandatory/optional/threshold search
+// against their own endpoint (/cocktail/search/ingredients), since Cocktails
+// are Recipes filtered server-side by category.
+export function useIngredientSearch(endpoint: string = '/recipe/search/ingredients') {
   const results = ref<PagedResultDto<RecipeSearchResultDto> | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -16,7 +19,7 @@ export function useIngredientSearch() {
 
     try {
       const response = await api.post<PagedResultDto<RecipeSearchResultDto>>(
-        '/recipe/search/ingredients',
+        endpoint,
         { ...params, page, pageSize: 20 }
       )
       results.value = response.data
