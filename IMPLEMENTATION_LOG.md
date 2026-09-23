@@ -562,3 +562,68 @@ this entry covers the implementation only.
 **Not in this ticket (left for Ticket 7):** fuzzy/near-duplicate name
 matching — only exact, case-insensitive dedup is implemented here, per
 the settled design.
+
+---
+
+## Ticket 7 — Add fuzzy/near-duplicate matching for ingredient creation
+
+**Closes:** the gap flagged during Ticket 6's grill-me session — both
+`RecipeForm.vue`'s save-time ingredient resolution and Ticket 6's
+manual-entry flow only deduped by exact, case-insensitive name, so a
+typo (e.g. "Tomatoe") would silently create a near-duplicate
+`Ingredient` instead of suggesting the existing "Tomato". Purely a
+frontend change; no schema/API changes required.
+
+**New shared utility (`swiftcookui/src/utils/similarity.ts`):**
+- `levenshteinDistance(a, b)` — standard dynamic-programming edit
+  distance.
+- `findClosestMatch(name, candidates, maxDistance = 2)` — case-
+  insensitive nearest-candidate lookup; excludes exact matches (nothing
+  to suggest) and ignores names under 3 characters on either side (too
+  short for edit distance to be meaningful, e.g. "Oil" vs "Oi").
+  Returns the single closest name within `maxDistance`, or `null`.
+
+**Frontend changes:**
+- `swiftcookui/src/components/AdvancedSearch.vue` — new
+  `suggestedMatch` computed runs `findClosestMatch` against the current
+  category's own ingredient names, keyed off Ticket 6's
+  `pendingCreateName` (i.e. only considered once there's no exact
+  match). Renders a "Did you mean '‹name›'?" link alongside (not
+  replacing) the existing "+ Add as new ingredient" button. New
+  `useSuggestion(categoryId)` sets the input to the suggested name and
+  re-runs `addIngredient()`, which then resolves via the existing
+  exact-match path and selects the existing ingredient instead of
+  creating a new one.
+- `swiftcookui/src/views/RecipeForm.vue` — new `suggestedMatches`
+  computed runs `findClosestMatch` per ingredient row (against all
+  known ingredient names) for any row with typed text and no resolved
+  `ingredientId`. Renders an inline "Did you mean '‹name›'?" link per
+  row; `useSuggestion(index)` replaces the row's typed name with the
+  suggestion, which then resolves via the pre-existing exact-match
+  check in `submitForm()` — no change to the save-time creation logic
+  itself. This is a live, non-blocking nudge as the user types, not a
+  modal/interruption at submit time, since the existing form has no
+  confirm-dialog precedent to build on and the fuzzy check only needs
+  to *offer* a better choice, not enforce one.
+
+**Verification:**
+- `src/utils/__tests__/similarity.spec.ts` — new file, 11 tests
+  covering distance calculation, case-insensitivity, exact-match
+  exclusion, short-name exclusion, closest-of-multiple-candidates, and a
+  custom `maxDistance`.
+- `src/components/__tests__/AdvancedSearch.spec.ts` — 2 new tests (10
+  total in the file): a near-duplicate typo surfaces the suggestion
+  alongside the create affordance; accepting the suggestion selects the
+  existing ingredient and clears both affordances.
+- `RecipeForm.vue` has no existing test file in this repo; its wiring
+  was verified via `npm run build` (`vue-tsc --build` clean, since
+  mock/test-only type errors wouldn't have applied here anyway) and
+  manual review confirming the reused submit-time exact-match path is
+  unchanged.
+- `dotnet test` — 11/11 (no backend changes; run for regression safety
+  only). `npm run build`/`lint`/`test` — 37/37 frontend tests passing.
+
+**Not in this ticket (explicitly out of scope):** the pre-existing
+`RecipeForm.vue` untyped-ingredient bug (`createIngredient` called with
+no `typeId`) — tracked separately as Ticket 10. Fuzzy matching reduces
+how often that code path is hit but does not fix it.

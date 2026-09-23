@@ -11,11 +11,11 @@ sidebar but not real (Shopping List, Meal Planner) plus process gaps already
 flagged in `REVIEW.md` that remain open. Each ticket is scoped to be an
 independent PR; suggested order is noted per ticket.
 
-**Status:** Tickets 1, 2, 3, 4, 6, 8, and 9 are now implemented (see
-`IMPLEMENTATION_LOG.md` for 1-4; Tickets 6, 8, and 9 below for their
-own resolution summaries). Ticket 5 (Cocktail ingredient search),
-Ticket 7 (fuzzy ingredient-name matching), and Ticket 10 (pre-existing
-`RecipeForm.vue` untyped-ingredient bug) are open.
+**Status:** Tickets 1, 2, 3, 4, 6, 7, 8, and 9 are now implemented (see
+`IMPLEMENTATION_LOG.md` for 1-4; Tickets 6, 7, 8, and 9 below for their
+own resolution summaries). Ticket 5 (Cocktail ingredient search) and
+Ticket 10 (pre-existing `RecipeForm.vue` untyped-ingredient bug) are
+open.
 
 **Suggested priority order (open tickets):**
 1. ~~**Ticket 9**~~ — ✅ implemented (`IngredientCategory` schema +
@@ -27,10 +27,9 @@ Ticket 7 (fuzzy ingredient-name matching), and Ticket 10 (pre-existing
 3. ~~**Ticket 6**~~ — ✅ implemented (manual/create-on-the-fly
    ingredient entry against the category-box layout, with a per-category
    fallback `IngredientType`). Was blocking Ticket 7.
-4. **Ticket 7** — fuzzy/near-duplicate matching. Its own scope depends on
-   Ticket 6's manual-entry flow existing to extend (now done — ready to
-   start), though the `RecipeForm.vue` half could equally be tackled
-   first if desired.
+4. ~~**Ticket 7**~~ — ✅ implemented (shared Levenshtein-based
+   `findClosestMatch` utility; "Did you mean...?" suggestions in both
+   `AdvancedSearch.vue` and `RecipeForm.vue`).
 5. **Ticket 5** — Cocktails ingredient search. Fully independent of
    6/7/8/9/10 (different view, no shared code path) — can be picked up
    in parallel at any point without waiting on the above.
@@ -319,7 +318,7 @@ correctly populated in the database.
 
 ---
 
-## Ticket 7: Add fuzzy/near-duplicate matching for ingredient creation
+## Ticket 7: Add fuzzy/near-duplicate matching for ingredient creation — ✅ Implemented
 
 **Problem:** Both the existing `RecipeForm.vue:205` ingredient-creation
 flow and Ticket 6's manual-entry search flow only dedup by exact,
@@ -336,6 +335,46 @@ similar) when resolving a typed ingredient name, surfacing "Did you mean
 
 **Order:** Depends on Ticket 6 landing first for the manual-entry flow to
 extend; can otherwise start independently against `RecipeForm.vue`.
+
+**Resolution:** Added a new shared, dependency-free utility
+(`swiftcookui/src/utils/similarity.ts`) implementing classic Levenshtein
+edit distance plus a `findClosestMatch(name, candidates, maxDistance =
+2)` helper — case-insensitive, excludes exact matches, and ignores names
+under 3 characters (too noisy to usefully fuzzy-match). Wired into both
+target flows:
+- **`AdvancedSearch.vue`** (Ticket 6's manual-entry flow): a new
+  `suggestedMatch` computed runs `findClosestMatch` against the typed,
+  no-exact-match text scoped to that category's own ingredients (reusing
+  `pendingCreateName`/`box.options` from Ticket 6/8). When a near match
+  exists, a "Did you mean '‹name›'?" link renders alongside (not instead
+  of) the existing "+ Add as new ingredient" button, so the user can
+  either accept the suggestion (selects the existing ingredient) or
+  proceed with a genuinely new one.
+- **`RecipeForm.vue`**: a new `suggestedMatches` computed runs
+  `findClosestMatch` per ingredient row (against all known ingredient
+  names) whenever a row has a typed name and no resolved
+  `ingredientId`. A "Did you mean '‹name›'?" link renders inline per row;
+  clicking it replaces the typed text with the existing name, which then
+  resolves via the pre-existing exact-match check in `submitForm()` —
+  no change needed to the save-time creation logic itself. This flow is
+  a live nudge as the user types, not a blocking modal at submit time,
+  since the existing form has no confirm-dialog precedent to interrupt
+  submission.
+- Deliberately **not addressed** (out of scope, per Ticket 10): the
+  untyped-ingredient bug in `RecipeForm.vue`'s `createIngredient` call
+  (no `typeId` passed) — fuzzy matching reduces how often that path is
+  hit but doesn't fix it.
+- Verified with 11 new `similarity.spec.ts` unit tests (distance
+  calculation, case-insensitivity, exact-match exclusion, short-name
+  exclusion, closest-of-multiple-candidates, custom threshold) and 2 new
+  `AdvancedSearch.spec.ts` component tests (suggestion renders for a
+  near-duplicate typo alongside the create affordance; accepting it
+  selects the existing ingredient instead of creating one) — 37/37
+  frontend tests passing. `RecipeForm.vue` has no existing test file in
+  this repo, so its wiring was verified via `npm run build`
+  (`vue-tsc --build` clean) plus manual review of the reused submit-time
+  exact-match path. Backend: no schema/API changes required (frontend-
+  only ticket); `dotnet test` still 11/11.
 
 ---
 

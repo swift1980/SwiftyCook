@@ -173,4 +173,39 @@ describe('AdvancedSearch', () => {
 
     expect(mockedApi.post).not.toHaveBeenCalled()
   })
+
+  it('shows a "Did you mean...?" suggestion for a near-duplicate typo instead of only offering to create a new ingredient (Ticket 7)', async () => {
+    const wrapper = mount(AdvancedSearch)
+    await flushPromises()
+
+    const proteinInput = wrapper.find('#ingredient-category-1')
+    await proteinInput.setValue('Chiken') // typo of "Chicken"
+    await proteinInput.trigger('keydown.enter')
+
+    const suggestion = wrapper.find('.suggestion-btn')
+    expect(suggestion.exists()).toBe(true)
+    expect(suggestion.text()).toContain('Chicken')
+    // The "+ Add as new" affordance is still offered alongside the suggestion.
+    expect(wrapper.find('.add-new-btn').exists()).toBe(true)
+  })
+
+  it('clicking a "Did you mean...?" suggestion selects the existing ingredient instead of creating a new one', async () => {
+    const wrapper = mount(AdvancedSearch)
+    await flushPromises()
+
+    const proteinInput = wrapper.find('#ingredient-category-1')
+    await proteinInput.setValue('Chiken')
+    await proteinInput.trigger('keydown.enter')
+
+    await wrapper.find('.suggestion-btn').trigger('click')
+    await flushPromises()
+
+    expect(mockedApi.post).not.toHaveBeenCalled()
+    const tags = wrapper.findAll('.ingredient-tag')
+    expect(tags).toHaveLength(1)
+    expect(tags[0].text()).toContain('Chicken')
+    expect((proteinInput.element as HTMLInputElement).value).toBe('')
+    expect(wrapper.find('.suggestion-btn').exists()).toBe(false)
+    expect(wrapper.find('.add-new-btn').exists()).toBe(false)
+  })
 })

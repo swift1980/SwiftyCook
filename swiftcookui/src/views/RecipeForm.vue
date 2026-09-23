@@ -84,6 +84,13 @@
     <option v-for="ing in ingredients" :key="ing.id" :value="ing.name" />
   </datalist>
 
+  <span v-if="suggestedMatches[index]" class="ingredient-suggestion">
+    Did you mean
+    <button type="button" class="suggestion-btn" @click="useSuggestion(index)">
+      "{{ suggestedMatches[index] }}"
+    </button>?
+  </span>
+
   <input type="number" v-model.number="ri.amount" placeholder="Amount" />
 
   <select v-model="ri.unitId" required>
@@ -117,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, onMounted } from 'vue'
+import { reactive, onMounted, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRecipeStore } from '@/stores/recipeStore'
 import { useCategoryStore } from '@/stores/categoryStore'
@@ -125,6 +132,7 @@ import { useTagStore } from '@/stores/tagStore'
 import { useToolStore } from '@/stores/toolStore'
 import { useIngredientStore } from '@/stores/ingredientStore'
 import { useUnitStore } from '@/stores/unitStore'
+import { findClosestMatch } from '@/utils/similarity'
 import type { RecipeCreateDto } from "../interfaces/recipe";
 
 const recipeStore = useRecipeStore()
@@ -177,6 +185,23 @@ const addIngredient = () => {
   } as FormIngredient)
 }
 const removeIngredient = (i: number) => form.ingredients.splice(i, 1)
+
+// Ticket 7: "Did you mean '‹existing name›'?" per ingredient row, so a typo
+// doesn't silently spawn a redundant new Ingredient at submit time.
+const suggestedMatches = computed(() =>
+  form.ingredients.map((ri) => {
+    const typed = ri.ingredientName?.trim()
+    if (!typed || ri.ingredientId != null) return null
+    return findClosestMatch(typed, ingredients.value.map((i) => i.name))
+  })
+)
+
+/** Accepts a fuzzy suggestion for a row, replacing the typed name with the existing ingredient's name (which will then resolve via exact match at submit time). */
+const useSuggestion = (index: number) => {
+  const suggestion = suggestedMatches.value[index]
+  if (!suggestion) return
+  form.ingredients[index].ingredientName = suggestion
+}
 
 const addInstruction = () => {
   form.instructions.push({
@@ -291,6 +316,26 @@ onMounted(async () => {
   display: flex;
   gap: 0.5rem;
   align-items: flex-start;
+}
+
+.ingredient-suggestion {
+  font-size: 0.8rem;
+  color: #555;
+  align-self: center;
+}
+
+.suggestion-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #1a5fb4;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: inherit;
+}
+
+.suggestion-btn:hover {
+  opacity: 0.7;
 }
 
 button {

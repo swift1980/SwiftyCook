@@ -35,6 +35,13 @@
           </datalist>
         </div>
 
+        <span v-if="suggestedMatch[box.categoryId]" class="suggestion">
+          Did you mean
+          <button type="button" class="suggestion-btn" @click="useSuggestion(box.categoryId)">
+            "{{ suggestedMatch[box.categoryId] }}"
+          </button>?
+        </span>
+
         <button v-if="pendingCreateName[box.categoryId]"
                 type="button"
                 class="add-new-btn"
@@ -87,6 +94,7 @@
   import { useIngredientTypeStore } from '@/stores/ingredientTypeStore'
   import { useIngredientCategoryStore } from '@/stores/ingredientCategoryStore'
   import { useCupboardStore } from '@/stores/cupboardStore'
+  import { findClosestMatch } from '@/utils/similarity'
   import type { IngredientSearchParams } from '@/interfaces/ingredientSearch'
 
   const emit = defineEmits<{
@@ -184,6 +192,28 @@
     }
     return map
   })
+
+  // Ticket 7: "Did you mean '‹existing name›'?" — a near-duplicate check
+  // (exact-match already ruled out by pendingCreateName) so a typo doesn't
+  // spawn a redundant new Ingredient when an existing one was intended.
+  const suggestedMatch = computed(() => {
+    const map: Record<number, string> = {}
+    for (const [categoryId, typed] of Object.entries(pendingCreateName.value)) {
+      const box = categoryBoxes.value.find((b) => b.categoryId === Number(categoryId))
+      if (!box) continue
+      const match = findClosestMatch(typed, box.options)
+      if (match) map[Number(categoryId)] = match
+    }
+    return map
+  })
+
+  /** Accepts a fuzzy suggestion in place of creating a new ingredient. */
+  function useSuggestion(categoryId: number) {
+    const suggestion = suggestedMatch.value[categoryId]
+    if (!suggestion) return
+    inputs[categoryId] = suggestion
+    addIngredient(categoryId)
+  }
 
   const optionalIngredients = computed(() =>
     Object.values(selectedMap).filter((i) => !i.mandatory)
@@ -399,6 +429,26 @@
     .ingredient-tag-type {
       font-size: 0.75rem;
       opacity: 0.7;
+    }
+
+    .suggestion {
+      align-self: flex-start;
+      font-size: 0.8rem;
+      color: #555;
+    }
+
+    .suggestion-btn {
+      background: none;
+      border: none;
+      padding: 0;
+      color: #1a5fb4;
+      text-decoration: underline;
+      cursor: pointer;
+      font-size: inherit;
+
+      &:hover {
+        opacity: 0.7;
+      }
     }
 
     .add-new-btn {
