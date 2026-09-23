@@ -11,12 +11,11 @@ sidebar but not real (Shopping List, Meal Planner) plus process gaps already
 flagged in `REVIEW.md` that remain open. Each ticket is scoped to be an
 independent PR; suggested order is noted per ticket.
 
-**Status:** Tickets 1, 2, 3, 4, 8, and 9 are now implemented (see
-`IMPLEMENTATION_LOG.md` for 1-4; Tickets 8 and 9 below for their own
-resolution summaries). Ticket 5 (Cocktail ingredient search), Ticket 6
-(manual ingredient entry), Ticket 7 (fuzzy ingredient-name matching),
-and Ticket 10 (pre-existing `RecipeForm.vue` untyped-ingredient bug)
-are open.
+**Status:** Tickets 1, 2, 3, 4, 6, 8, and 9 are now implemented (see
+`IMPLEMENTATION_LOG.md` for 1-4; Tickets 6, 8, and 9 below for their
+own resolution summaries). Ticket 5 (Cocktail ingredient search),
+Ticket 7 (fuzzy ingredient-name matching), and Ticket 10 (pre-existing
+`RecipeForm.vue` untyped-ingredient bug) are open.
 
 **Suggested priority order (open tickets):**
 1. ~~**Ticket 9**~~ — ✅ implemented (`IngredientCategory` schema +
@@ -25,13 +24,13 @@ are open.
 2. ~~**Ticket 8**~~ — ✅ implemented (`AdvancedSearch.vue` now renders
    one box per root `IngredientCategory` instead of per
    `IngredientType`). Was blocking Ticket 6.
-3. **Ticket 6** — implement manual entry against the category-box layout
-   from Ticket 8 (including the per-category "Miscellaneous" type
-   fallback for newly-created ingredients). Depends on 8 + 9 (both now
-   done) — ready to start.
+3. ~~**Ticket 6**~~ — ✅ implemented (manual/create-on-the-fly
+   ingredient entry against the category-box layout, with a per-category
+   fallback `IngredientType`). Was blocking Ticket 7.
 4. **Ticket 7** — fuzzy/near-duplicate matching. Its own scope depends on
-   Ticket 6's manual-entry flow existing to extend, though the
-   `RecipeForm.vue` half could start independently/earlier if desired.
+   Ticket 6's manual-entry flow existing to extend (now done — ready to
+   start), though the `RecipeForm.vue` half could equally be tackled
+   first if desired.
 5. **Ticket 5** — Cocktails ingredient search. Fully independent of
    6/7/8/9/10 (different view, no shared code path) — can be picked up
    in parallel at any point without waiting on the above.
@@ -207,7 +206,7 @@ backend work rather than a wiring fix.
 
 ---
 
-## Ticket 6: Allow manual entry of ingredients in Ingredient Search
+## Ticket 6: Allow manual entry of ingredients in Ingredient Search — ✅ Implemented
 
 **Problem:** The Advanced Search ingredient boxes (`AdvancedSearch.vue`)
 only accept ingredients that already exist in `ingredientStore` — the
@@ -289,6 +288,34 @@ re-typeable later via the existing `PUT /ingredient`.
 **Order:** Depends on Tickets 8 and 9 shipping first — needs the
 category-box layout and the `IngredientCategory`/per-category
 "Miscellaneous" type to exist before this can be implemented.
+
+**Resolution:** Implemented as designed. Since `IngredientType.Name` is
+globally `UNIQUE`, the per-category fallback couldn't literally be
+named "Miscellaneous" in all 7 categories — implemented instead as a
+new `IngredientCategory.FallbackTypeId` column (nullable FK →
+`IngredientType`, `ON DELETE SET NULL`), pointing each of the 7
+categories at its own seeded catch-all type (`Other (Carbs)`,
+`Other (Protein)`, ... `Other (Miscellaneous)`, ids 30-36). This is a
+schema addition tightly coupled to this ticket's core requirement
+(auto-assigned fallback typing with no extra prompt), not deferred, so
+it shipped as part of Ticket 6 rather than a separate ticket.
+`AdvancedSearch.vue`'s `addIngredient()` now matches a typed name
+against *any* ingredient in the category (via the `typeId → categoryId`
+map from Ticket 8), and no longer clears the input on a miss; instead
+a reactive `pendingCreateName` surfaces a "+ Add '‹name›' as new
+ingredient" button. Confirming it calls `ingredientStore.
+createIngredient({ name, pluralName: '', typeId: category.
+fallbackTypeId })` and selects the result. Verified with 4 new
+`AdvancedSearch.spec.ts` tests (affordance appears instead of
+discarding text, confirms creation under the right fallback type and
+selects it, and a missing-fallback category safely no-ops) plus a live
+docker-compose + MariaDB run creating a real ingredient end-to-end.
+One implementation bug was caught and fixed during that live
+verification: `IngredientCategoryController`'s `GetAll`/`GetById` had
+hand-rolled `Select()` projections (not AutoMapper) that predated
+`FallbackTypeId` and needed updating to include it — otherwise the API
+always returned `fallbackTypeId: null` despite the column being
+correctly populated in the database.
 
 ---
 

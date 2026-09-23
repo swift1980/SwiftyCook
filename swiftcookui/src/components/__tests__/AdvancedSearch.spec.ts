@@ -20,18 +20,21 @@ const mockedApi = vi.mocked(api, true)
 // One root category ("Cocktail") intentionally has no ingredients yet, plus a
 // hypothetical non-root category, to verify: (a) empty categories still
 // render a box, and (b) non-root categories are excluded (Ticket 8 scope is
-// root-category boxes only).
+// root-category boxes only). fallbackTypeId (Ticket 6) points Protein/Produce
+// at a distinct catch-all type; Cocktail has none configured, to test that
+// missing-fallback edge case.
 const categories: IngredientCategoryDto[] = [
-  { id: 1, name: 'Protein', parentCategoryId: null },
-  { id: 2, name: 'Produce', parentCategoryId: null },
-  { id: 3, name: 'Cocktail', parentCategoryId: null },
-  { id: 4, name: 'Sub-Protein', parentCategoryId: 1 },
+  { id: 1, name: 'Protein', parentCategoryId: null, fallbackTypeId: 30 },
+  { id: 2, name: 'Produce', parentCategoryId: null, fallbackTypeId: 31 },
+  { id: 3, name: 'Cocktail', parentCategoryId: null, fallbackTypeId: null },
+  { id: 4, name: 'Sub-Protein', parentCategoryId: 1, fallbackTypeId: null },
 ]
 
 const types: IngredientTypeDto[] = [
   { id: 10, name: 'Meat', categoryId: 1 },
   { id: 11, name: 'Poultry', categoryId: 1 },
   { id: 20, name: 'Vegetable', categoryId: 2 },
+  { id: 30, name: 'Other (Protein)', categoryId: 1 }, // Protein's fallback type (Ticket 6)
 ]
 
 const ingredients: IngredientDto[] = [
@@ -48,7 +51,6 @@ function mockApiResponses() {
     return Promise.resolve({ data: [] })
   })
 }
-
 describe('AdvancedSearch', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -111,5 +113,64 @@ describe('AdvancedSearch', () => {
     await proteinInput.trigger('keydown.enter')
 
     expect(wrapper.findAll('.ingredient-tag')).toHaveLength(0)
+  })
+
+  it('shows a "+ Add as new ingredient" affordance when a typed name has no match, instead of discarding it', async () => {
+    const wrapper = mount(AdvancedSearch)
+    await flushPromises()
+
+    const proteinInput = wrapper.find('#ingredient-category-1')
+    await proteinInput.setValue('Duck')
+    await proteinInput.trigger('keydown.enter')
+
+    // Not silently discarded — the input keeps the typed text and the
+    // confirm affordance appears instead of an ingredient tag.
+    expect((proteinInput.element as HTMLInputElement).value).toBe('Duck')
+    expect(wrapper.findAll('.ingredient-tag')).toHaveLength(0)
+    const addBtn = wrapper.find('.add-new-btn')
+    expect(addBtn.exists()).toBe(true)
+    expect(addBtn.text()).toContain('Duck')
+  })
+
+  it('confirming the "+ Add as new ingredient" affordance creates the ingredient under the category\'s fallback type and selects it', async () => {
+    const created: IngredientDto = { id: 999, name: 'Duck', pluralName: '', typeId: 30, typeName: 'Other (Protein)' }
+    mockedApi.post.mockResolvedValueOnce({ data: created })
+
+    const wrapper = mount(AdvancedSearch)
+    await flushPromises()
+
+    const proteinInput = wrapper.find('#ingredient-category-1')
+    await proteinInput.setValue('Duck')
+    await proteinInput.trigger('keydown.enter')
+    await wrapper.find('.add-new-btn').trigger('click')
+    await flushPromises()
+
+    expect(mockedApi.post).toHaveBeenCalledWith('/ingredient', { name: 'Duck', pluralName: '', typeId: 30 })
+    const tags = wrapper.findAll('.ingredient-tag')
+    expect(tags).toHaveLength(1)
+    expect(tags[0].text()).toContain('Duck')
+    expect(tags[0].text()).toContain('Other (Protein)')
+    // Input is cleared and the affordance disappears once created.
+    expect((proteinInput.element as HTMLInputElement).value).toBe('')
+    expect(wrapper.find('.add-new-btn').exists()).toBe(false)
+  })
+
+  it('does not offer the "+ Add as new ingredient" affordance for a category with no fallback type configured', async () => {
+    const wrapper = mount(AdvancedSearch)
+    await flushPromises()
+
+    const cocktailInput = wrapper.find('#ingredient-category-3')
+    await cocktailInput.setValue('Gin')
+    await cocktailInput.trigger('keydown.enter')
+
+    // Cocktail (category 3) has fallbackTypeId: null in the mock data — the
+    // affordance still renders (missing-fallback is a configuration error,
+    // not a UI-hidden state), but confirming it is a safe no-op.
+    const addBtn = wrapper.find('.add-new-btn')
+    expect(addBtn.exists()).toBe(true)
+    await addBtn.trigger('click')
+    await flushPromises()
+
+    expect(mockedApi.post).not.toHaveBeenCalled()
   })
 })

@@ -483,3 +483,82 @@ as anticipated in Ticket 8's design.
 of new ingredients from within a category box — this ticket only
 regroups the *existing* ingredient-selection UI; Ticket 6 adds the
 create-on-the-fly flow on top of this layout.
+
+---
+
+## Ticket 6 — Allow manual entry of ingredients in Ingredient Search
+
+**Closes:** the previous silent-discard behavior in `AdvancedSearch.vue`
+when a typed name didn't exactly match an existing ingredient, and the
+requirement to know which specific `IngredientType`/`IngredientCategory`
+box an ingredient lives in before being able to type it. Design settled
+via `/grill-me` (see `BACKLOG.md` Ticket 6 for the full decision log);
+this entry covers the implementation only.
+
+**Schema/backend changes:**
+- `swiftcookdb/init.sql` — added `IngredientCategory.FallbackTypeId`
+  (nullable FK → `IngredientType`, `ON DELETE SET NULL`, added via
+  `ALTER TABLE` after `IngredientType` exists, since the two tables now
+  reference each other). `IngredientType.Name` is globally `UNIQUE`, so
+  a single literal "Miscellaneous" type couldn't be reused across all 7
+  categories — this column instead lets each category point at its own
+  distinct catch-all type.
+- `swiftcookdb/seeds/3-IngredientType.sql` — added 7 new catch-all
+  `IngredientType` rows (ids 30-36: `Other (Carbs)`, `Other (Protein)`,
+  `Other (Dairy)`, `Other (Produce)`, `Other (Pantry)`,
+  `Other (Cocktail)`, `Other (Miscellaneous)`), one per root category,
+  plus `UPDATE IngredientCategory SET FallbackTypeId = ...` statements
+  wiring each category to its type.
+- `swiftcookdb/Models/IngredientCategory.cs` — added
+  `FallbackTypeId`/`FallbackType` nav property.
+- `swiftcookapi/Dtos/IngredientCategoryDto.cs` — added `FallbackTypeId`.
+- `swiftcookdb/SwiftCookDbContext.cs` — configured the new FK
+  (`DeleteBehavior.SetNull`, no inverse nav collection on
+  `IngredientType`).
+- `swiftcookapi/Controllers/IngredientCategoryController.cs` —
+  `GetAll`/`GetById` updated to include `FallbackTypeId` in their
+  hand-rolled DTO projections. **Bug caught during live verification:**
+  these endpoints originally kept returning `fallbackTypeId: null` even
+  though the database column was correctly populated — the controller
+  projects to the DTO manually (not via AutoMapper) and simply hadn't
+  been updated to select the new field.
+- No changes needed to `IngredientController`/`POST /ingredient` — it
+  already accepted an optional `TypeId`.
+
+**Frontend changes (`swiftcookui/src/components/AdvancedSearch.vue`):**
+- `addIngredient()` now matches a typed name against ingredients of
+  *any* `IngredientType` within the current category (via Ticket 8's
+  `typeCategoryMap`), not a single type, and no longer clears the input
+  on a miss.
+- New reactive `pendingCreateName` computed surfaces a
+  "+ Add '‹name›' as new ingredient" button per category box whenever
+  the typed text has no existing match — the explicit confirm step the
+  design required (no silent creation on Enter).
+- New `confirmCreate(categoryId)` calls `ingredientStore.
+  createIngredient({ name, pluralName: '', typeId: <category's
+  fallbackTypeId> })`, adds the result to the selection, and clears the
+  input. Guards and logs (doesn't throw) if a category's
+  `fallbackTypeId` is unexpectedly missing.
+- `ingredientStore.error` is now rendered inline if creation fails.
+- `swiftcookui/src/interfaces/ingredientCategory.ts` — added
+  `fallbackTypeId: number | null`.
+
+**Verification:**
+- `src/components/__tests__/AdvancedSearch.spec.ts` — 4 new tests (9
+  total in the file): shows the confirm affordance instead of
+  discarding unmatched text; confirming creates the ingredient via
+  `POST /ingredient` with the category's fallback type and selects it
+  with its type label; a category with no configured fallback type
+  safely no-ops instead of posting.
+- `dotnet build`/`dotnet test` (11/11) and `npm run build`/`lint`/`test`
+  (24/24) all pass.
+- End-to-end: ran a fresh `mariadb` + `swiftcookapi` docker-compose
+  stack, confirmed `GET /ingredientcategory` returns the correct
+  `fallbackTypeId` per category (after fixing the controller bug above),
+  and confirmed `POST /ingredient` with a fallback `typeId` creates a
+  real, immediately-searchable ingredient (verified via
+  `GET /ingredienttype/{id}/ingredients`).
+
+**Not in this ticket (left for Ticket 7):** fuzzy/near-duplicate name
+matching — only exact, case-insensitive dedup is implemented here, per
+the settled design.

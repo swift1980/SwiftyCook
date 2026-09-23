@@ -42,3 +42,25 @@ INSERT IGNORE INTO IngredientType (Id, Name, CategoryId) VALUES
 (27,'Bitter',6),
 (28,'Mixer',6),
 (29,'Garnish',6);
+
+-- Per-category catch-all types (Ticket 6): the fixed fallback IngredientType
+-- each category's AdvancedSearch.vue box assigns to ingredients created via
+-- manual entry, so they're immediately visible in search without prompting
+-- the user to pick a specific type.
+INSERT IGNORE INTO IngredientType (Id, Name, CategoryId) VALUES
+(30,'Other (Carbs)',1),
+(31,'Other (Protein)',2),
+(32,'Other (Dairy)',3),
+(33,'Other (Produce)',4),
+(34,'Other (Pantry)',5),
+(35,'Other (Cocktail)',6),
+(36,'Other (Miscellaneous)',7);
+
+-- Point each category at its fallback type (see IngredientCategory.FallbackTypeId).
+UPDATE IngredientCategory SET FallbackTypeId = 30 WHERE Id = 1;
+UPDATE IngredientCategory SET FallbackTypeId = 31 WHERE Id = 2;
+UPDATE IngredientCategory SET FallbackTypeId = 32 WHERE Id = 3;
+UPDATE IngredientCategory SET FallbackTypeId = 33 WHERE Id = 4;
+UPDATE IngredientCategory SET FallbackTypeId = 34 WHERE Id = 5;
+UPDATE IngredientCategory SET FallbackTypeId = 35 WHERE Id = 6;
+UPDATE IngredientCategory SET FallbackTypeId = 36 WHERE Id = 7;

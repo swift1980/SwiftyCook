@@ -75,6 +75,17 @@ namespace SwiftCookDb
                 .WithMany(c => c.IngredientTypes)
                 .HasForeignKey(t => t.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Ticket 6: each category's designated catch-all IngredientType for
+            // manually-created ingredients. SetNull (not Restrict) since losing a
+            // fallback type shouldn't block anything else. No inverse navigation
+            // collection on IngredientType — it's a one-off pointer, not a
+            // meaningful "categories that use me as fallback" relationship.
+            modelBuilder.Entity<IngredientCategory>()
+                .HasOne(c => c.FallbackType)
+                .WithMany()
+                .HasForeignKey(c => c.FallbackTypeId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

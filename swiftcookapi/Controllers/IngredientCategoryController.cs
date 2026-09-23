@@ -21,14 +21,14 @@ namespace swiftcookapi.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<IngredientCategoryDto>>> GetAll() =>
             await _context.IngredientCategories
-                .Select(c => new IngredientCategoryDto { Id = c.Id, Name = c.Name, ParentCategoryId = c.ParentCategoryId })
+                .Select(c => new IngredientCategoryDto { Id = c.Id, Name = c.Name, ParentCategoryId = c.ParentCategoryId, FallbackTypeId = c.FallbackTypeId })
                 .ToListAsync();
 
         [HttpGet("{id}")]
         public async Task<ActionResult<IngredientCategoryDto>> GetById(int id)
         {
             var category = await _context.IngredientCategories
-                .Select(c => new IngredientCategoryDto { Id = c.Id, Name = c.Name, ParentCategoryId = c.ParentCategoryId })
+                .Select(c => new IngredientCategoryDto { Id = c.Id, Name = c.Name, ParentCategoryId = c.ParentCategoryId, FallbackTypeId = c.FallbackTypeId })
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             return category == null ? NotFound() : category;

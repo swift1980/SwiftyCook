@@ -34,6 +34,13 @@
             <option v-for="name in box.options" :key="name" :value="name" />
           </datalist>
         </div>
+
+        <button v-if="pendingCreateName[box.categoryId]"
+                type="button"
+                class="add-new-btn"
+                @click="confirmCreate(box.categoryId)">
+          + Add "{{ pendingCreateName[box.categoryId] }}" as new ingredient
+        </button>
       </div>
     </div>
 
@@ -52,6 +59,8 @@
              class="threshold-slider" />
       <span v-if="thresholdError" class="threshold-error">{{ thresholdError }}</span>
     </div>
+
+    <span v-if="ingredientStore.error" class="create-error">{{ ingredientStore.error }}</span>
 
     <div class="advanced-search__actions">
       <button type="button"
@@ -152,6 +161,30 @@
     return map
   })
 
+  /** Finds an existing ingredient by exact case-insensitive name, scoped to a category (spanning all its child types). */
+  function findExistingMatch(categoryId: number, name: string) {
+    const lower = name.toLowerCase()
+    return ingredientStore.ingredients.find((i) => {
+      if (i.typeId == null || typeCategoryMap.value[i.typeId] !== categoryId) return false
+      return i.name.toLowerCase() === lower
+    })
+  }
+
+  // Ticket 6: when a typed name doesn't match any existing ingredient in its
+  // category, surface an explicit "+ Add as new ingredient" confirm affordance
+  // instead of silently discarding it.
+  const pendingCreateName = computed(() => {
+    const map: Record<number, string> = {}
+    for (const box of categoryBoxes.value) {
+      const value = inputs[box.categoryId]?.trim()
+      if (!value) continue
+      if (!findExistingMatch(box.categoryId, value)) {
+        map[box.categoryId] = value
+      }
+    }
+    return map
+  })
+
   const optionalIngredients = computed(() =>
     Object.values(selectedMap).filter((i) => !i.mandatory)
   )
@@ -177,14 +210,34 @@
   function addIngredient(categoryId: number) {
     const value = inputs[categoryId]?.trim()
     if (!value) return
-    const match = ingredientStore.ingredients.find((i) => {
-      if (i.typeId == null || typeCategoryMap.value[i.typeId] !== categoryId) return false
-      return i.name.toLowerCase() === value.toLowerCase()
-    })
-    if (match && !(match.id in selectedMap)) {
-      selectedMap[match.id] = { id: match.id, name: match.name, mandatory: false, typeName: match.typeName }
+    const match = findExistingMatch(categoryId, value)
+    if (match) {
+      if (!(match.id in selectedMap)) {
+        selectedMap[match.id] = { id: match.id, name: match.name, mandatory: false, typeName: match.typeName }
+      }
+      inputs[categoryId] = ''
     }
-    inputs[categoryId] = ''
+    // No match: leave the input as-is. pendingCreateName reactively surfaces
+    // a "+ Add as new ingredient" confirm affordance instead of silently
+    // discarding the typed text (Ticket 6).
+  }
+
+  /** Explicit confirm step (Ticket 6): creates the typed name as a real Ingredient, typed under the category's fixed fallback IngredientType, and selects it. */
+  async function confirmCreate(categoryId: number) {
+    const value = inputs[categoryId]?.trim()
+    if (!value) return
+    const fallbackTypeId = ingredientCategoryStore.categories.find((c) => c.id === categoryId)?.fallbackTypeId
+    if (fallbackTypeId == null) {
+      console.error(`IngredientCategory ${categoryId} has no FallbackTypeId configured; cannot create ingredient.`)
+      return
+    }
+    try {
+      const created = await ingredientStore.createIngredient({ name: value, pluralName: '', typeId: fallbackTypeId })
+      selectedMap[created.id] = { id: created.id, name: created.name, mandatory: false, typeName: created.typeName }
+      inputs[categoryId] = ''
+    } catch {
+      // ingredientStore.error is already set by createIngredient and rendered in the template.
+    }
   }
 
   function removeIngredient(id: number) {
@@ -346,6 +399,28 @@
     .ingredient-tag-type {
       font-size: 0.75rem;
       opacity: 0.7;
+    }
+
+    .add-new-btn {
+      align-self: flex-start;
+      font-size: 0.8rem;
+      padding: 3px 8px;
+      border: 1px dashed #888;
+      border-radius: 4px;
+      background: none;
+      cursor: pointer;
+      color: #555;
+
+      &:hover {
+        background: #f0f0f0;
+      }
+    }
+
+    .create-error {
+      display: block;
+      color: #a00;
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
     }
 
     .tag-mode {

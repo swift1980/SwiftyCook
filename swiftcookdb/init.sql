@@ -24,6 +24,11 @@ CREATE TABLE IngredientCategory (
     Id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     Name VARCHAR(50) UNIQUE,
     ParentCategoryId INT NULL,
+    -- Designated catch-all IngredientType for this category, used by
+    -- AdvancedSearch.vue's manual ingredient entry (Ticket 6) so newly-created
+    -- ingredients get a real type without prompting the user to pick one. FK
+    -- added below (via ALTER TABLE) once IngredientType exists.
+    FallbackTypeId INT NULL,
     CONSTRAINT FK_IngredientCategory_Parent FOREIGN KEY (ParentCategoryId) REFERENCES IngredientCategory(Id) ON DELETE RESTRICT
 );
 -- INGREDIENT TYPE
@@ -33,6 +38,13 @@ CREATE TABLE IngredientType (
     CategoryId INT NOT NULL,
     CONSTRAINT FK_IngredientType_CategoryId FOREIGN KEY (CategoryId) REFERENCES IngredientCategory(Id) ON DELETE RESTRICT
 );
+-- FallbackTypeId's FK must be added after IngredientType exists (circular
+-- reference between the two tables). ON DELETE SET NULL rather than RESTRICT,
+-- since losing a fallback type shouldn't block anything else — the category
+-- would just have no fallback until reassigned (no CRUD tooling for either
+-- table exists yet, so this is a theoretical safeguard for now).
+ALTER TABLE IngredientCategory
+    ADD CONSTRAINT FK_IngredientCategory_FallbackType FOREIGN KEY (FallbackTypeId) REFERENCES IngredientType(Id) ON DELETE SET NULL;
 -- INGREDIENT
 CREATE TABLE Ingredient (
 	Id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
