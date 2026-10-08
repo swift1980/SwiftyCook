@@ -11,9 +11,21 @@ sidebar but not real (Shopping List, Meal Planner) plus process gaps already
 flagged in `REVIEW.md` that remain open. Each ticket is scoped to be an
 independent PR; suggested order is noted per ticket.
 
-**Status:** All tickets (1-10) are now implemented (see
+**Status:**
+- All tickets (1-10) are now implemented (see
 `IMPLEMENTATION_LOG.md` for 1-4; Tickets 5-10 below for their own
 resolution summaries). No open tickets remain.
+- New tickets to be created section added. New work ideas ready for analysis
+  and grill-me sessions
+
+**New Tickets To Be Created (2026-10-08):**
+- Create page to CRUD Ingredients, including ingredientType management
+- Amend Optional Ingredient slider to default to all
+- Previously descoped "Ticket 2: Build a real Meal Planner". Analysis required
+  to plan implementation. Functionality: Weekly Meal planner, add
+  recipes per day and per meal (breakfast, lunch, dinner, snacks), ability to add
+  recipes by searching via meal planner page or by "add to meal planner" button on
+  recipe card
 
 **Post-backlog maintenance (2026-10-08):**
 - Fixed the frontend ingredient-search payload to map its internal
