@@ -9,7 +9,7 @@
       <h3>Ingredients</h3>
       <ul>
         <li v-for="ing in recipe.ingredients" :key="ing.ingredientId">
-          {{ ing.amount }} {{ ing.unit.abbreviation }} {{ ing.ingredientName }}
+          {{ ing.amount }} {{ ing.unit?.abbreviation ?? ing.unit?.name }} {{ ing.ingredientName }}
         </li>
       </ul>
 
@@ -24,9 +24,12 @@
 </template>
 
 <script setup lang="ts">
+import type { PropType } from 'vue'
+import type { RecipeDto } from '@/interfaces/recipe'
+
 defineProps({
   recipe: {
-    type: Object,
+    type: Object as PropType<RecipeDto>,
     required: true
   }
 })

@@ -18,6 +18,14 @@ const params: IngredientSearchParams = {
   threshold: 0.5,
 }
 
+const requestBody = {
+  mandatoryIngredientIds: params.mandatoryIds,
+  optionalIngredientIds: params.optionalIds,
+  optionalThreshold: params.threshold,
+  page: 1,
+  pageSize: 20,
+}
+
 const page: PagedResultDto<RecipeSearchResultDto> = {
   items: [
     {
@@ -47,11 +55,7 @@ describe('useIngredientSearch', () => {
     const { results, loading, error, search } = useIngredientSearch()
     await search(params)
 
-    expect(mockedApi.post).toHaveBeenCalledWith('/recipe/search/ingredients', {
-      ...params,
-      page: 1,
-      pageSize: 20,
-    })
+    expect(mockedApi.post).toHaveBeenCalledWith('/recipe/search/ingredients', requestBody)
     expect(results.value).toEqual(page)
     expect(loading.value).toBe(false)
     expect(error.value).toBeNull()
@@ -66,9 +70,8 @@ describe('useIngredientSearch', () => {
     await loadPage(2)
 
     expect(mockedApi.post).toHaveBeenLastCalledWith('/recipe/search/ingredients', {
-      ...params,
+      ...requestBody,
       page: 2,
-      pageSize: 20,
     })
     expect(results.value?.page).toBe(2)
   })
@@ -112,10 +115,6 @@ describe('useIngredientSearch', () => {
     const { search } = useIngredientSearch('/cocktail/search/ingredients')
     await search(params)
 
-    expect(mockedApi.post).toHaveBeenCalledWith('/cocktail/search/ingredients', {
-      ...params,
-      page: 1,
-      pageSize: 20,
-    })
+    expect(mockedApi.post).toHaveBeenCalledWith('/cocktail/search/ingredients', requestBody)
   })
 })

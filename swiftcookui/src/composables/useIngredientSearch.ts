@@ -20,7 +20,13 @@ export function useIngredientSearch(endpoint: string = '/recipe/search/ingredien
     try {
       const response = await api.post<PagedResultDto<RecipeSearchResultDto>>(
         endpoint,
-        { ...params, page, pageSize: 20 }
+        {
+          mandatoryIngredientIds: params.mandatoryIds,
+          optionalIngredientIds: params.optionalIds,
+          optionalThreshold: params.threshold,
+          page,
+          pageSize: 20,
+        }
       )
       results.value = response.data
     } catch (err: unknown) {

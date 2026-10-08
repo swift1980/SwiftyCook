@@ -12,12 +12,16 @@
   <RecipeCard v-if="selectedRecipe"
               :recipe="selectedRecipe"
               @close="selectedRecipe = null" />
+  <p v-else-if="detailError" class="detail-error" role="alert">{{ detailError }}</p>
 </template>
 
 <script setup lang="ts">
   import { ref, type PropType } from "vue"
   import RecipeCard from "./RecipeCard.vue"
+  import api from '@/services/api'
+  import { getErrorMessage } from '@/utils/errors'
   import type { RecipeCardItem } from '@/interfaces/ingredientSearch'
+  import type { RecipeDto } from '@/interfaces/recipe'
 
   defineProps({
     items: {
@@ -30,10 +34,18 @@
 	}
   });
 
-  const selectedRecipe = ref<RecipeCardItem | null>(null)
+  const selectedRecipe = ref<RecipeDto | null>(null)
+  const detailError = ref<string | null>(null)
 
-  function openRecipe(recipe: RecipeCardItem) {
-    selectedRecipe.value = recipe
+  async function openRecipe(recipe: RecipeCardItem) {
+    detailError.value = null
+
+    try {
+      const response = await api.get<RecipeDto>(`/recipe/${recipe.id}`)
+      selectedRecipe.value = response.data
+    } catch (err: unknown) {
+      detailError.value = getErrorMessage(err, 'Failed to load recipe details.')
+    }
   }
 </script>
 
@@ -48,6 +60,10 @@
 
   .card {
     @include card;
+  }
+
+  .detail-error {
+    color: #a00;
   }
 
   /* --- Card animation --- */

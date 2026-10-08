@@ -68,6 +68,18 @@ describe('AdvancedSearch', () => {
     expect(labels).toEqual(['Protein', 'Produce', 'Cocktail'])
   })
 
+  it('restricts boxes to the allowed ingredient categories', async () => {
+    const wrapper = mount(AdvancedSearch, {
+      props: { allowedCategoryIds: [3] },
+    })
+    await flushPromises()
+
+    const labels = wrapper.findAll('.advanced-search__field label').map((l) => l.text())
+    expect(labels).toEqual(['Cocktail'])
+    expect(wrapper.find('#ingredient-category-1').exists()).toBe(false)
+    expect(wrapper.find('#ingredient-category-2').exists()).toBe(false)
+  })
+
   it("a category box's datalist options span all of that category's child IngredientTypes", async () => {
     const wrapper = mount(AdvancedSearch)
     await flushPromises()

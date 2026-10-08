@@ -102,6 +102,10 @@
     (e: 'clear'): void
   }>()
 
+  const props = defineProps<{
+    allowedCategoryIds?: number[]
+  }>()
+
   const ingredientStore = useIngredientStore()
   const ingredientTypeStore = useIngredientTypeStore()
   const ingredientCategoryStore = useIngredientCategoryStore()
@@ -140,7 +144,10 @@
   // IngredientType (unbounded, user-creatable) — see BACKLOG.md Ticket 8.
   const categoryBoxes = computed(() =>
     ingredientCategoryStore.categories
-      .filter((c) => c.parentCategoryId == null)
+      .filter((c) =>
+        c.parentCategoryId == null &&
+        (props.allowedCategoryIds == null || props.allowedCategoryIds.includes(c.id))
+      )
       .map((category) => ({
         categoryId: category.id,
         categoryName: category.name,
@@ -155,6 +162,18 @@
     boxes.forEach((b) => {
       if (!(b.categoryId in inputs)) inputs[b.categoryId] = ''
     })
+  }, { immediate: true })
+
+  watch(() => props.allowedCategoryIds, (allowedCategoryIds) => {
+    if (allowedCategoryIds == null) return
+
+    for (const item of Object.values(selectedMap)) {
+      const typeId = ingredientStore.ingredients.find((i) => i.id === item.id)?.typeId
+      const categoryId = typeId == null ? undefined : typeCategoryMap.value[typeId]
+      if (categoryId == null || !allowedCategoryIds.includes(categoryId)) {
+        delete selectedMap[item.id]
+      }
+    }
   }, { immediate: true })
 
   const selectedByCategory = computed(() => {

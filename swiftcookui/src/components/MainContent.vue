@@ -15,6 +15,7 @@
       </div>
 
       <AdvancedSearch v-if="isIngredientSearchRoute && showAdvancedSearch"
+                      :allowed-category-ids="route.name === 'Cocktails' ? [6] : undefined"
                       @search="onAdvancedSearch"
                       @clear="onAdvancedClear" />
 
