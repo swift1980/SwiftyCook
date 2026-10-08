@@ -46,3 +46,28 @@ services:
       - ./swiftcookdb/seeds/6-Ingredient.sql:/docker-entrypoint-initdb.d/7-ingredient.sql
       - ./swiftcookdb/seeds/7-Cocktails.sql:/docker-entrypoint-initdb.d/8-cocktail.sql
       - ./swiftcookdb/seeds/8-Tool.sql:/docker-entrypoint-initdb.d/9-tool.sql
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
+  mariadb-backup:
+    image: mariadb:latest
+    restart: unless-stopped
+    environment:
+      DB_HOST: mariadb
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+    volumes:
+      - mariadb_backups:/backups
+      - ./swiftcookdb/backup.sh:/usr/local/bin/backup.sh:ro
+    entrypoint: ["/bin/sh", "/usr/local/bin/backup.sh"]
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+volumes:
+  mariadb_backups:

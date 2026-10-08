@@ -29,6 +29,27 @@ xUnit test suite covering dedup, thresholds, ranking, and pagination edge
 cases.
 
 ================================================================
+POST-REVIEW UPDATES (2026-10-08)
+================================================================
+
+- Fixed the frontend/API contract mismatch in ingredient search. The Vue
+  client now sends `mandatoryIngredientIds`, `optionalIngredientIds`, and
+  `optionalThreshold`, matching `RecipeIngredientSearchRequestDto`; this
+  resolves the UI's 400 responses.
+- Cocktail Advanced Search is restricted to `IngredientCategory` 6
+  (Cocktail), preventing food-category selections from being submitted to
+  the cocktail endpoint.
+- Card selection now fetches `/api/recipe/{id}` before showing the detail
+  modal, so recipe and cocktail cards render their ingredients and
+  instructions rather than the lightweight search-result fields alone.
+- Docker Compose now includes a health-gated `mariadb-backup` service that
+  writes compressed, transaction-consistent backups to a named Docker
+  volume daily and removes backups older than seven days.
+- Verified the focused composable tests (6), Advanced Search tests (11),
+  the new card-detail test, production UI builds, and live API/UI-proxy
+  requests against the seeded MariaDB stack.
+
+================================================================
 FIXES APPLIED (2026-09-07)
 ================================================================
 

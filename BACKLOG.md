@@ -15,6 +15,21 @@ independent PR; suggested order is noted per ticket.
 `IMPLEMENTATION_LOG.md` for 1-4; Tickets 5-10 below for their own
 resolution summaries). No open tickets remain.
 
+**Post-backlog maintenance (2026-10-08):**
+- Fixed the frontend ingredient-search payload to map its internal
+  `mandatoryIds`/`optionalIds`/`threshold` fields to the API's
+  `mandatoryIngredientIds`/`optionalIngredientIds`/`optionalThreshold`
+  contract. This resolves the UI's `400 Bad Request` response.
+- Restricted the Cocktails route's shared Advanced Search panel to
+  `IngredientCategory` `6` (Cocktail), keeping food-category inputs and
+  selections out of cocktail searches.
+- Fixed recipe and cocktail detail cards to fetch the complete
+  `/api/recipe/{id}` representation before displaying it, so ingredients
+  and instructions are no longer absent from search-result cards.
+- Added a `mariadb-backup` Compose service. It makes an immediate,
+  compressed transaction-consistent dump followed by daily dumps in the
+  named `mariadb_backups` volume, retaining the latest seven days.
+
 **Priority order (all implemented):**
 1. ~~**Ticket 9**~~ — ✅ implemented (`IngredientCategory` schema +
    automatic backfill of the 6 root categories + read-only `GET
@@ -245,6 +260,15 @@ reused almost entirely rather than building a parallel simpler model.
   cocktail for rum+mint and zero results for a food-only ingredient
   (Chicken), while `/api/recipe/search/ingredients` (no `CategoryId`)
   remains unaffected.
+
+**Follow-up (2026-10-08):** The shared UI composable now explicitly maps
+its frontend parameter names to the API request DTO, resolving a `400 Bad
+Request` caused by posting `mandatoryIds`, `optionalIds`, and `threshold`.
+On the Cocktails route, `AdvancedSearch` is restricted to
+`IngredientCategory` `6` (Cocktail); the component also removes any
+already selected ingredient outside the permitted category. The focused
+composable tests (6), Advanced Search component tests (11), production UI
+build, and live Docker request through the UI proxy passed.
 
 ---
 
