@@ -18,15 +18,35 @@ resolution summaries). No open tickets remain.
 - New tickets to be created section added. New work ideas ready for analysis
   and grill-me sessions
 
-**New Tickets To Be Created (2026-10-08):**
+**New Tickets To Be Created (2026-10-09):**
 - Create page to CRUD Ingredients, including ingredientType management
+  (analysed -> Ticket 11)
 - Amend Optional Ingredient slider to default to all
+  (analysed -> Ticket 12; also "Use Cupboard" rework -> Ticket 13)
 - Previously descoped "Ticket 2: Build a real Meal Planner". Analysis required
   to plan implementation. Functionality: Weekly Meal planner, add
   recipes per day and per meal (breakfast, lunch, dinner, snacks), ability to add
   recipes by searching via meal planner page or by "add to meal planner" button on
-  recipe card
+  recipe card (analysed -> Tickets 17, 18, 19, 20; cook log added)
+- "Purchased" button on Shopping List page. When clicked all items on the shopping list
+  are added to Cupboard. If ingredient already exists in Cupboard then increase amount
+  (analysed -> Tickets 21, 22, 23)
+- "Add to Shopping List" on Meal Planner page. All ingredients needed for Recipes on
+  the Meal Plan that do not exist in cupboard are added to Shopping List. Add to Shopping
+  List if Ingredient exists in Cupboard but amount is less than needed
+  (analysed -> Tickets 21, 24)
+- Design file format for Recipe import. Purpose is to be able to take a recipe from
+  multiple sources (webpage, magazine, blogs) and have a standardised way to format
+  them for database insertion (analysed -> Tickets 14, 15, 16)
 
+**Suggested build order for Tickets 11-24:**
+1. Ticket 12 (slider default) and Ticket 11 (ingredient CRUD + `IsStaple`)
+2. Ticket 21 (unit conversion), then Ticket 22 (multi-unit Cupboard)
+3. Ticket 13 (Use Cupboard rework), Ticket 14 (ingredient notes), Ticket 15
+   (import spec), Ticket 17 (planner backend), Ticket 18 (planner UI),
+   Ticket 23 (Purchased)
+4. Ticket 16 (import), Ticket 19 (add-to-planner button), Ticket 20 (cook
+   log), Ticket 24 (Add to Shopping List)
 **Post-backlog maintenance (2026-10-08):**
 - Fixed the frontend ingredient-search payload to map its internal
   `mandatoryIds`/`optionalIds`/`threshold` fields to the API's
@@ -726,5 +746,295 @@ per-category fallback infrastructure) — reusing the already-seeded
   docker-compose + MariaDB run: `POST /api/ingredient` with a resolved
   fallback `typeId` returns a fully-typed ingredient, confirmed visible
   (non-null `typeName`) via `GET /api/ingredient`.
+
+---
+
+## Ticket 11: Ingredient and IngredientType CRUD page (with `IsStaple`) — Open
+
+**Problem:** `IngredientController` and `IngredientTypeController` already
+expose full GET/POST/PUT/DELETE, but there is no UI to manage ingredients or
+types. Ticket 13 also needs a way to flag pantry staples.
+
+**Scope:**
+- Add `IsStaple` (bool, default false) to `Ingredient`: EF migration, DTOs,
+  AutoMapper entries, seed a few staples (e.g. water, salt, cooking oil).
+- New frontend page with two tabs (Ingredients, Types). Ingredients are
+  searchable by name and filterable by category/type; `IsStaple` is a
+  checkbox.
+- Delete is blocked with `409` and a usage summary (e.g. "used in 12 recipes,
+  in the cupboard"). Ingredient usage: recipes, cupboard, shopping list.
+  Type usage: any ingredient, or being a category's `FallbackTypeId`.
+- Reject case-insensitive duplicate ingredient names with `409`.
+- Rename is allowed freely.
+
+**Out of scope:** merge-duplicates, reassign-on-delete, soft delete/audit.
+
+**Order:** Must land before Ticket 13.
+
+---
+
+## Ticket 12: Optional-ingredient slider defaults to "all" — ✅ Implemented
+
+**Problem:** The threshold slider in `AdvancedSearch.vue` starts at 0 and is
+only ever clamped down.
+
+**Scope:**
+- The slider tracks the max (number of optional ingredients) automatically,
+  so it reads "N of N", until the user moves it manually; after that the
+  existing clamp behaviour applies.
+- Clear resets it to tracking mode.
+- Frontend only.
+
+**Note:** Default-all makes optionals behave like mandatory ones, so default
+results shrink; this is intended. Ticket 13 removes the "Use Cupboard"
+interaction with this slider.
+
+**Order:** Independent.
+
+---
+
+## Ticket 13: Rework "Use Cupboard" — makeable recipes — Open
+
+**Problem:** "Use Cupboard" currently dumps every cupboard item into the
+optional list, which yields poor results. Users want recipes they can
+actually make from (a selection of) their cupboard.
+
+**Scope:**
+- New backend search mode: a recipe matches when every ingredient is in the
+  selected cupboard items or is a staple (`IsStaple`). Presence-only; amounts
+  and units are ignored. `RecipeIngredient` has no optional flag, so all
+  recipe ingredients count.
+- Toggle "Include recipes with missing ingredients" (off by default): returns
+  recipes with at least one cupboard ingredient, ranked by fewest missing
+  (staples are never missing), with a missing count shown on each card.
+- UI: checklist of cupboard items, all ticked by default, replacing the
+  current prefill of the optional list.
+- Applies to both Recipes and Cocktails (shared search service).
+
+**Order:** Depends on Ticket 11 (`IsStaple`).
+
+**Assumptions:** single-user app; global (not per-user) staples.
+
+---
+
+## Ticket 14: Ingredient notes on `RecipeIngredient` — Open
+
+**Problem:** Source recipes carry per-ingredient notes ("finely chopped",
+"to taste") that have no home in the schema, so they would be lost on
+import (Ticket 16) or manual entry.
+
+**Scope:**
+- Add nullable `Note` to `RecipeIngredient`: EF migration, create/read DTOs,
+  AutoMapper entries.
+- `RecipeForm.vue`: optional note field per ingredient.
+- Recipe card displays it after the ingredient (e.g. "2 onions, finely
+  chopped").
+- Notes do not affect search. "To taste"-style items are expressed as
+  `amount: null` plus a note.
+
+**Order:** Independent; must land before Ticket 16.
+
+---
+
+## Ticket 15: Recipe import file format and spec (design only) — Open
+
+**Problem:** Recipes come from many sources (webpages, magazines, blogs) and
+need one standardised format for database insertion.
+
+**Scope (docs only, nothing runs against the database):**
+- JSON file holding one recipe or an array. Publish a JSON Schema and a
+  documented example under `docs/`.
+- Names, not ids, are used for categories, tags, tools, ingredients and
+  units; they are resolved at import time.
+- Fields: `name` (required), `description`, `image` (URL, stored as-is),
+  `prepTime`/`cookTime` (minutes), `yield`, `categories`/`tags`/`tools`
+  (name arrays), `ingredients` (`name`, `amount` numeric or omitted, `unit`,
+  `note`), `instructions` (ordered strings), `source` (`url`, `title`,
+  `author`).
+- Include a prompt template for turning a web page/text into this format
+  with an LLM or script.
+- Limits to document: max file size, max recipes per batch (e.g. 50), string
+  length limits.
+
+**Order:** Independent; must land before Ticket 16.
+
+---
+
+## Ticket 16: Recipe import implementation — Open
+
+**Problem:** There is no way to load recipes in the Ticket 15 format.
+
+**Scope:**
+- Add `source` fields (url, title, author) to `Recipe`: migration, DTOs,
+  display on the recipe card.
+- `POST /api/recipe/import?dryRun=true|false` with strict schema and limit
+  validation of the untrusted upload before any resolution; each recipe is
+  validated, previewed and imported in its own transaction, so one bad
+  recipe does not block the others.
+- Name resolution (case-insensitive exact match, then the Ticket 7
+  Levenshtein matcher for near matches):
+  - **Ingredients:** unmatched names require a user decision in the preview
+    (map to an existing ingredient, or create under a chosen category's
+    fallback `IngredientType`). Near matches default to "use existing",
+    pending confirmation.
+  - **Units:** match by name or abbreviation; unmatched units block that
+    recipe line until mapped. Never auto-created.
+  - **Categories, tags, tools:** unmatched names are auto-created.
+  - **Recipe name collision:** warn; user chooses skip or import anyway. No
+    overwrite/update.
+- Frontend upload page with a dry-run preview step before confirming.
+
+**Out of scope:** scraping third-party pages, downloading or hosting images,
+update-in-place of existing recipes, id-based round-trip export.
+
+**Order:** Depends on Tickets 14, 15 and 11 (category choice for new
+ingredients).
+
+---
+
+## Ticket 17: Meal Planner backend — Open
+
+**Problem:** Ticket 2 descoped the Meal Planner; there is no `MealPlan`
+model, DTO or controller.
+
+**Scope:**
+- `MealPlanEntry`: `Id`, `Date` (date only), `MealType` (enum: Breakfast,
+  Lunch, Dinner, Snack, Cocktail), `RecipeId` (FK), `Servings` (defaults to
+  the recipe's `Yield`), `SortOrder`, nullable `CookLogId` (reserved for
+  Ticket 20). One row per entry; many entries allowed per date and meal
+  type; the same recipe may appear repeatedly. No separate "plan" object —
+  weeks are derived from dates (Monday start, a constant).
+- Recipe entries only; free-text entries are not supported.
+- `MealPlanController`: GET (by date range), POST, PUT, DELETE, plus DTOs,
+  AutoMapper entries, EF migration (follow the `Cupboard`/`ShoppingList`
+  pattern).
+- Rules: deleting a recipe that is planned returns `409` with a usage
+  summary (extends Ticket 11's pattern). Cocktail recipes (category 6) can
+  only use the Cocktail meal type, and other recipes cannot.
+- Backend tests.
+
+**Order:** Independent; blocks Tickets 18, 19, 20.
+
+---
+
+## Ticket 18: Meal Planner UI — Open
+
+**Scope:**
+- New `/planner` route, sidebar link, `mealPlan` Pinia store and week-grid
+  view: 7 day columns × 5 meal-type rows (incl. Cocktail), previous / next /
+  "this week" navigation, collapsing to one day on narrow screens.
+- Shared add dialog opened from a cell "+": search recipes by name; the
+  Cocktail row only offers cocktails and other rows exclude them.
+- Edit servings, remove entries. Duplicate entries in a slot are allowed
+  without warning.
+- No drag-and-drop in v1 (UI refinement is a later enhancement).
+
+**Order:** Depends on Ticket 17.
+
+---
+
+## Ticket 19: "Add to meal planner" on the recipe card — Open
+
+**Scope:**
+- Button on recipe/cocktail cards opening the shared add dialog: date
+  (default today), meal type (guessed from the recipe's categories,
+  changeable; cocktails fixed to Cocktail) and servings.
+- Confirmation message after adding (e.g. "Added to Tuesday dinner").
+
+**Order:** Depends on Tickets 17 and 18.
+
+---
+
+## Ticket 20: Cook log — Open
+
+**Scope:**
+- `CookLog`: `Id`, `RecipeId`, `CookedOn`, `Servings`, nullable `Notes`.
+  It is the single source of truth for "when was this made"; planned entries
+  link to it via `CookLogId` and store no date of their own.
+- "Mark as made" on planner cells (creates a `CookLog` row and links it;
+  undo removes the link and row), "Log as made" and "Last made: N days ago"
+  on the recipe card, edit/delete of log rows.
+- **No Cupboard deduction** — deferred until unit and amount rules are
+  defined.
+
+**Order:** Later than the planner; depends on Tickets 17 and 18.
+
+---
+
+## Ticket 21: Unit dimensions and conversion — Open
+
+**Problem:** `Unit` has 16 seeded rows with no dimension or conversion data,
+so amounts in different units (200 g vs 0.5 kg) cannot be compared or summed.
+The `ounce` seed is also ambiguous (described as "Fluid ounce" but used for
+weight and, in cocktails, for liquids). `Amount` is a `float`.
+
+**Scope:**
+- Add `Dimension` (Mass, Volume, Count, Other) and nullable `ToBaseFactor`
+  to `Unit`. Base units: gram (mass), millilitre (volume). UK/metric values:
+  tsp 5 ml, tbsp 15 ml, cup 250 ml, UK fl oz 28.41 ml, pint 568 ml (new
+  unit), pound 453.59 g, weight oz 28.35 g. `pinch`/`dash` are `Other` with
+  no conversion; `sgl`/`piece`/`slice`/`clove` are Count.
+- Split `ounce` into weight `ounce` and `fluid ounce`; reversible migration
+  remaps existing recipe rows (cocktail rows become fluid ounces).
+- Change `Amount` from `float` to `decimal`.
+- Shared, unit-tested `UnitConverter` service: convert, compare, sum, and
+  pick a display unit (larger unit when >= 1). Same-dimension conversion
+  only; cross-dimension (e.g. grams vs cups) is never converted.
+- Confirm how "no unit" rows are stored today and treat them as Count `sgl`.
+- Keep frontend unit-picker changes minimal.
+
+**Order:** Foundation; blocks Tickets 22, 23, 24. Riskiest ticket (migrates
+seeded reference data, changes a column type) — own PR with rollback.
+Ticket 16's importer must map "oz" and "fl oz" explicitly after the split.
+
+---
+
+## Ticket 22: Cupboard supports multiple units per ingredient — Open
+
+**Scope:**
+- Allow one Cupboard row per ingredient and unit. Additions in the same
+  dimension are converted and merged into the existing row (shown in a
+  sensible display unit); incomparable units stay as separate rows. Never
+  guess.
+
+**Order:** Depends on Ticket 21.
+
+---
+
+## Ticket 23: "Purchased" button on the Shopping List — Open
+
+**Scope:**
+- Moves all shopping list items to the Cupboard (per Ticket 22's merge
+  rules) in a single transaction, then clears the list; any failure changes
+  nothing. Unit-mismatch items are moved as separate Cupboard rows.
+- Confirmation dialog listing what will be added first.
+- All-or-nothing in v1; per-item partial purchase is a later improvement.
+
+**Order:** Depends on Tickets 21 and 22.
+
+---
+
+## Ticket 24: "Add to Shopping List" from the Meal Planner — Open
+
+**Scope:**
+- Shortage calculation over the visible week (past dates excluded): needed
+  amounts scaled by planned servings / recipe yield, summed across recipes
+  within a dimension, compared with the Cupboard and with what is already
+  on the shopping list; only the difference is added (idempotent, never
+  reduces or removes items).
+- Excluded: staples (`IsStaple`) and recipe lines with no amount/unit
+  ("to taste"; these only appear as no-amount items if the ingredient is
+  absent from the Cupboard).
+- Ingredient present in the Cupboard only in an incomparable unit: add the
+  full needed amount flagged "check cupboard (unit mismatch)" (over-buy
+  rather than miss).
+- Preview dialog before writing. Optional nullable `Source` on `ShoppingList`
+  to mark generated lines.
+
+**Order:** Depends on Tickets 11, 17, 18, 21, 22.
+
+**Later (not yet ticketed):** per-item partial purchase; Cupboard deduction
+from the cook log (Ticket 20); excluding made entries from shortages;
+density-based cross-dimension conversion.
 
 ---

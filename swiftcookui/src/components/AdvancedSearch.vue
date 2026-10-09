@@ -63,7 +63,8 @@
              type="range"
              :min="0"
              :max="optionalIngredients.length"
-             class="threshold-slider" />
+             class="threshold-slider"
+             @input="thresholdTouched = true" />
       <span v-if="thresholdError" class="threshold-error">{{ thresholdError }}</span>
     </div>
 
@@ -127,6 +128,8 @@
   const selectedMap = reactive<Record<number, SelectedIngredient>>({})
 
   const threshold = ref(0)
+  // Until the user moves the slider, the threshold tracks "all optional ingredients".
+  const thresholdTouched = ref(false)
   const isDirty = ref(false)
   const lastSubmittedKey = ref('')
 
@@ -251,6 +254,10 @@
     return hasIngredients && thresholdError.value === null
   })
 
+  watch(() => optionalIngredients.value.length, (count) => {
+    if (!thresholdTouched.value) threshold.value = count
+  })
+
   // Mark dirty whenever selection or threshold changes after a search
   watch([() => ({ ...selectedMap }), threshold], () => {
     isDirty.value = true
@@ -334,6 +341,7 @@
   function clearAll() {
     Object.keys(selectedMap).forEach((k) => delete selectedMap[Number(k)])
     threshold.value = 0
+    thresholdTouched.value = false
     isDirty.value = false
     emit('clear')
   }
