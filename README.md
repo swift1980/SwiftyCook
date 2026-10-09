@@ -8,7 +8,17 @@ Recipe database with a Vue.js frontend, ASP.NET Core API, and MariaDB.
 2. Search recipes by mandatory and optional ingredient combinations, with an optional-match threshold and pagination.
 3. Browse cocktails separately (Recipe CategoryId `1`) and search them by Cocktail-category ingredients only.
 4. Open a recipe or cocktail card to view its complete ingredient list and instructions.
-5. Track ingredients in a cupboard and search recipes using cupboard ingredients.
+5. Track ingredients in a cupboard (several units per ingredient, with unit conversion within mass and volume) and find recipes that can be made from it, optionally including recipes with missing ingredients.
+6. Manage ingredients (including staples and notes) and recipes.
+7. Import recipes from JSON with a dry-run preview; see [docs/recipe-import-format.md](docs/recipe-import-format.md).
+8. Plan meals in a weekly meal planner, add recipes to it from the recipe card, and add what is missing for the week to the shopping list.
+9. Keep a cook log per recipe ("last made", history) and mark planned meals as made.
+10. Keep a shopping list and move purchased items to the cupboard.
+
+## Database upgrades
+
+`swiftcookdb/init.sql` only runs on a fresh database. For an existing database, run the matching
+`swiftcookdb/upgrade/ticket-N-*.sql` script (re-runnable); each has a `ticket-N-down.sql` rollback.
 
 ## Database backups
 
