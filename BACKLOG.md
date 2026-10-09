@@ -837,7 +837,7 @@ no longer touches the ingredient selection.
 
 ---
 
-## Ticket 14: Ingredient notes on `RecipeIngredient` — Open
+## Ticket 14: Ingredient notes on `RecipeIngredient` — Implemented
 
 **Problem:** Source recipes carry per-ingredient notes ("finely chopped",
 "to taste") that have no home in the schema, so they would be lost on
@@ -853,6 +853,8 @@ import (Ticket 16) or manual entry.
   `amount: null` plus a note.
 
 **Order:** Independent; must land before Ticket 16.
+
+**Resolution:** Added nullable `Note` (255) to `RecipeIngredient` (model, `init.sql`, `upgrade/ticket-14-ingredient-note.sql` + down script, DTOs). `RecipeForm.vue` has a note input per row and sends `amount: null` rather than 0 when blank. `RecipeCard.vue` renders `2 onions, finely chopped` and hides a missing amount. Ticket 16's importer must set `Note`. PUT recipe update still ignores ingredients (pre-existing).
 
 ---
 
@@ -877,6 +879,8 @@ need one standardised format for database insertion.
   length limits.
 
 **Order:** Independent; must land before Ticket 16.
+
+**Resolution:** Added nullable `Note` (255) to `RecipeIngredient` (model, `init.sql`, `upgrade/ticket-14-ingredient-note.sql` + down script, DTOs). `RecipeForm.vue` has a note input per row and sends `amount: null` rather than 0 when blank. `RecipeCard.vue` renders `2 onions, finely chopped` and hides a missing amount. Ticket 16's importer must set `Note`. PUT recipe update still ignores ingredients (pre-existing).
 
 ---
 

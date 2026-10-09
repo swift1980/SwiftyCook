@@ -110,6 +110,8 @@
     </option>
   </select>
 
+  <input type="text" v-model="ri.note" maxlength="255" placeholder="Note (e.g. finely chopped)" />
+
   <button type="button" @click="removeIngredient(index)">✕</button>
 </div>
 <button type="button" @click="addIngredient">+ Add Ingredient</button>
@@ -175,6 +177,7 @@ type FormIngredient =
   unitId: number | null
   position: number
   categoryId: number | null
+  note: string
 }
 
 
@@ -190,7 +193,7 @@ const form = reactive({
   tagIds: [] as number[],
   toolIds: [] as number[],
   ingredients: [
-    { ingredientId: null, ingredientName: '', amount: null as number | null, unitId: null as number | null, position: 1, categoryId: null } as FormIngredient
+    { ingredientId: null, ingredientName: '', amount: null as number | null, unitId: null as number | null, position: 1, categoryId: null, note: '' } as FormIngredient
   ],
   instructions: [{ step: '', position: 1 }]
 })
@@ -203,7 +206,8 @@ const addIngredient = () => {
     amount: null,
     unitId: null,
     position: form.ingredients.length + 1,
-    categoryId: null
+    categoryId: null,
+    note: ''
   } as FormIngredient)
 }
 const removeIngredient = (i: number) => form.ingredients.splice(i, 1)
@@ -300,7 +304,7 @@ const resetForm = () => {
   form.categoryIds = [];
   form.tagIds = [];
   form.toolIds = [];
-  form.ingredients = [{ ingredientId: null, ingredientName: '', amount: null, unitId: null, position: 1, categoryId: null }];
+  form.ingredients = [{ ingredientId: null, ingredientName: '', amount: null, unitId: null, position: 1, categoryId: null, note: '' }];
   form.instructions = [{ step: '', position: 1 }];
 };
 
@@ -317,9 +321,10 @@ const toDto = () => {
     toolIds: form.toolIds,
     ingredients: form.ingredients.map((ri, i) => ({
       ingredientId: Number(ri.ingredientId),
-      amount: ri.amount ?? 0,
+      amount: ri.amount ?? null,
       unitId: ri.unitId ? Number(ri.unitId) : 1,
-      position: i + 1
+      position: i + 1,
+      note: ri.note.trim() || null
     })),
     instructions: form.instructions.map((step, i) => ({
       step: step.step,

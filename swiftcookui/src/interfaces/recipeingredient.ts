@@ -8,6 +8,7 @@ export interface RecipeIngredientDto {
   amount: number | null
   unit?: UnitDto
   position: number
+  note?: string | null
 }
 
 export interface RecipeIngredientCreateDto {
@@ -15,4 +16,5 @@ export interface RecipeIngredientCreateDto {
   amount: number | null
   unitId: number | null
   position: number
+  note?: string | null
 }

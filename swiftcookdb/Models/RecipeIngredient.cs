@@ -15,5 +15,8 @@ namespace SwiftCookDb.Models
 
         public decimal? Amount { get; set; }
         public int? Position { get; set; }
+
+        // Free-text preparation note, e.g. "finely chopped" or "to taste"
+        public string? Note { get; set; }
     }
 }

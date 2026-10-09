@@ -102,6 +102,7 @@ namespace swiftcookapi.Controllers
                     var ri = _mapper.Map<RecipeIngredient>(riDto);
                     ri.RecipeId = recipe.Id;
                     ri.Position = riDto.Position ?? (index + 1);
+                    ri.Note = string.IsNullOrWhiteSpace(riDto.Note) ? null : riDto.Note.Trim();
                     return ri;
                 }).ToList();
 

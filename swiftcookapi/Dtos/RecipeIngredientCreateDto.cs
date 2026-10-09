@@ -7,4 +7,7 @@ public class RecipeIngredientCreateDto
     public int UnitId { get; set; }
 
     public int? Position { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(255)]
+    public string? Note { get; set; }
 }

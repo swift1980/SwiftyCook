@@ -6,4 +6,5 @@ public class RecipeIngredientReadDto
     public decimal? Amount { get; set; }
     public UnitDto? Unit { get; set; }
     public int? Position { get; set; }
+    public string? Note { get; set; }
 }

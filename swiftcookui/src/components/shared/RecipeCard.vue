@@ -9,7 +9,7 @@
       <h3>Ingredients</h3>
       <ul>
         <li v-for="ing in recipe.ingredients" :key="ing.ingredientId">
-          {{ ing.amount }} {{ ing.unit?.abbreviation ?? ing.unit?.name }} {{ ing.ingredientName }}
+          <template v-if="ing.amount != null">{{ [ing.amount, ing.unit?.abbreviation ?? ing.unit?.name].filter(Boolean).join(' ') + ' ' }}</template>{{ ing.ingredientName }}<template v-if="ing.note">, {{ ing.note }}</template>
         </li>
       </ul>
 

@@ -120,6 +120,7 @@ CREATE TABLE RecipeIngredient (
     Amount DECIMAL(12,4),
 	UnitId int NULL,
     Position int,
+    Note VARCHAR(255) NULL,
 	UNIQUE KEY uq_recipeingredient (RecipeId, IngredientId, UnitId),
     CONSTRAINT FK_RecipeIngredient_RecipeId FOREIGN KEY (RecipeId) REFERENCES Recipe(Id) ON DELETE CASCADE,
 	CONSTRAINT FK_RecipeIngredient_IngredientId FOREIGN KEY (IngredientId) REFERENCES Ingredient(Id) ON DELETE CASCADE,
