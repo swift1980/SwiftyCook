@@ -916,7 +916,7 @@ ingredients).
 
 ---
 
-## Ticket 17: Meal Planner backend — Open
+## Ticket 17: Meal Planner backend — Implemented
 
 **Problem:** Ticket 2 descoped the Meal Planner; there is no `MealPlan`
 model, DTO or controller.
@@ -938,6 +938,8 @@ model, DTO or controller.
 - Backend tests.
 
 **Order:** Independent; blocks Tickets 18, 19, 20.
+
+**Resolution:** Added `MealPlanEntry` (model, `MealType` enum stored as text, `init.sql`, `upgrade/ticket-17-meal-plan.sql` + down script) and `MealPlanController`: `GET /api/mealplan?from=&to=` (inclusive, max 100 days, ordered by date, meal type, sort order), `POST`, `PUT /{id}` and `DELETE /{id}`. Servings default to the recipe yield (or 1) and `SortOrder` appends to the slot. Cocktail recipes are those in recipe category 1 (the ticket text said 6, which is an ingredient category); they can only use `Cocktail` and other recipes cannot. Undefined `MealType` values return 400. `DELETE /api/recipe/{id}` returns 409 while the recipe is planned, and the FK is `RESTRICT`. `CookLogId` is a plain nullable column; Ticket 20 adds its foreign key.
 
 ---
 

@@ -175,3 +175,16 @@ CREATE TABLE Cupboard (
 	CONSTRAINT FK_Cupboard_IngredientId FOREIGN KEY (IngredientId) REFERENCES Ingredient(Id) ON DELETE CASCADE,
     CONSTRAINT FK_Cupboard_UnitId FOREIGN KEY (UnitId) REFERENCES Unit(Id) ON DELETE CASCADE
 );
+-- MEAL PLAN (one row per planned recipe; weeks are derived from Date)
+CREATE TABLE MealPlanEntry (
+    Id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    Date DATE NOT NULL,
+    MealType VARCHAR(20) NOT NULL,
+    RecipeId int NOT NULL,
+    Servings int NOT NULL,
+    SortOrder int NOT NULL DEFAULT 0,
+    CookLogId int NULL,
+    INDEX IX_MealPlanEntry_Date (Date),
+    CONSTRAINT CK_MealPlanEntry_MealType CHECK (MealType IN ('Breakfast','Lunch','Dinner','Snack','Cocktail')),
+    CONSTRAINT FK_MealPlanEntry_RecipeId FOREIGN KEY (RecipeId) REFERENCES Recipe(Id) ON DELETE RESTRICT
+);

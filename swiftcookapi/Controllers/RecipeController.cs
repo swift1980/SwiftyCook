@@ -192,7 +192,11 @@ namespace swiftcookapi.Controllers
         {
             var recipe = await _context.Recipes.FindAsync(id);
             if (recipe == null) return NotFound();
+            var planned = await _context.MealPlanEntries.CountAsync(e => e.RecipeId == id);
+            if (planned > 0)
+                return Conflict(new { message = $"Cannot delete '{recipe.Name}': planned in {planned} meal plan entr{(planned == 1 ? "y" : "ies")}." });
             _context.Recipes.Remove(recipe);
+            await _context.SaveChangesAsync();
             await _context.SaveChangesAsync();
             return NoContent();
         }

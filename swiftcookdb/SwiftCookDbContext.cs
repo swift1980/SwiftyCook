@@ -25,6 +25,7 @@ namespace SwiftCookDb
         public DbSet<Note> Notes { get; set; }
         public DbSet<ShoppingList> ShoppingLists { get; set; }
         public DbSet<Cupboard> Cupboards { get; set; }
+        public DbSet<MealPlanEntry> MealPlanEntries { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -47,6 +48,13 @@ namespace SwiftCookDb
             modelBuilder.Entity<Note>().ToTable("Note");
             modelBuilder.Entity<ShoppingList>().ToTable("ShoppingList");
             modelBuilder.Entity<Cupboard>().ToTable("Cupboard");
+            modelBuilder.Entity<MealPlanEntry>().ToTable("MealPlanEntry");
+            modelBuilder.Entity<MealPlanEntry>().Property(e => e.MealType).HasConversion<string>();
+            modelBuilder.Entity<MealPlanEntry>()
+                .HasOne(e => e.Recipe)
+                .WithMany()
+                .HasForeignKey(e => e.RecipeId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<RecipeCategory>().HasKey(rc => new { rc.RecipeId, rc.CategoryId });
             modelBuilder.Entity<RecipeTag>().HasKey(rt => new { rt.RecipeId, rt.TagId });
