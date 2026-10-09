@@ -79,7 +79,10 @@ CREATE TABLE Recipe (
     DateAdded DATE DEFAULT CURRENT_DATE,
     DateUpdated TIMESTAMP,
     NameNormalized VARCHAR(50) NOT NULL,
-    DescriptionNormalized TEXT
+    DescriptionNormalized TEXT,
+    SourceUrl VARCHAR(500),
+    SourceTitle VARCHAR(255),
+    SourceAuthor VARCHAR(255)
 );
 -- RECIPE CATEGORY
 CREATE TABLE RecipeCategory (

@@ -7,6 +7,9 @@ public class RecipeReadDto
     public int? PrepTime { get; set; }
     public int? CookTime { get; set; }
     public int? Yield { get; set; }
+    public string? SourceUrl { get; set; }
+    public string? SourceTitle { get; set; }
+    public string? SourceAuthor { get; set; }
 
     public List<int> CategoryIds { get; set; } = new();
     public List<string> Categories { get; set; } = new();

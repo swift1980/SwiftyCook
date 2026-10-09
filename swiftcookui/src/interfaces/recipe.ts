@@ -11,6 +11,9 @@ export interface RecipeDto {
   prepTime: number
   cookTime: number
   yield: number
+  sourceUrl?: string | null
+  sourceTitle?: string | null
+  sourceAuthor?: string | null
   categoryIds: number[]
   categories: string[]
   tags: string[]

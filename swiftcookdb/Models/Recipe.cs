@@ -14,6 +14,11 @@ namespace SwiftCookDb.Models
         public string NameNormalized { get; set; } = string.Empty;
         public string? DescriptionNormalized { get; set; }
 
+        // Ticket 16: optional attribution for imported recipes
+        public string? SourceUrl { get; set; }
+        public string? SourceTitle { get; set; }
+        public string? SourceAuthor { get; set; }
+
         public ICollection<RecipeCategory> RecipeCategories { get; set; } = new List<RecipeCategory>();
         public ICollection<RecipeTag> RecipeTags { get; set; } = new List<RecipeTag>();
         public ICollection<RecipeTool> RecipeTools { get; set; } = new List<RecipeTool>();

@@ -7,6 +7,13 @@ public class RecipeCreateDto
     public int CookTime { get; set; }
     public int Yield { get; set; }
 
+    [System.ComponentModel.DataAnnotations.StringLength(500)]
+    public string? SourceUrl { get; set; }
+    [System.ComponentModel.DataAnnotations.StringLength(255)]
+    public string? SourceTitle { get; set; }
+    [System.ComponentModel.DataAnnotations.StringLength(255)]
+    public string? SourceAuthor { get; set; }
+
     public List<int> CategoryIds { get; set; } = new();
     public List<int> TagIds { get; set; } = new();
     public List<int> ToolIds { get; set; } = new();

@@ -884,7 +884,7 @@ need one standardised format for database insertion.
 
 ---
 
-## Ticket 16: Recipe import implementation — Open
+## Ticket 16: Recipe import implementation — Implemented
 
 **Problem:** There is no way to load recipes in the Ticket 15 format.
 
@@ -913,6 +913,8 @@ update-in-place of existing recipes, id-based round-trip export.
 
 **Order:** Depends on Tickets 14, 15 and 11 (category choice for new
 ingredients).
+
+**Resolution:** Implemented as scoped. `Recipe` gains `SourceUrl`/`SourceTitle`/`SourceAuthor` (model, DTOs, `init.sql`, `upgrade/ticket-16-*.sql` verified on MariaDB, shown on the recipe card; only http(s) URLs are linked). `POST /api/recipe/import?dryRun=` takes `{ recipes, decisions }`; `RecipeImportValidator` enforces the Ticket 15 limits (unknown properties, http(s)-only URLs) before any lookup. `RecipeImportService` resolves each recipe separately (own transaction): ingredients by exact name, then `NameMatcher` (port of `similarity.ts`) suggestions that are never applied without a decision; units by name/abbreviation/plural (never created; lines with no unit use `sgl`); categories, tags and tools auto-created. Name collisions (including within the file) need "import anyway"; nothing is overwritten. New `/recipes/import` page previews, collects decisions (map, create under a category's fallback type, unit mapping, skip) and imports. Backend and frontend tests added.
 
 ---
 

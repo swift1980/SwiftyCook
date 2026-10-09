@@ -6,6 +6,7 @@ import Cocktails from '@/views/Cocktails.vue';
 import Cupboard from '@/views/Cupboard.vue';
 import IngredientManager from '@/views/IngredientManager.vue';
 import MealPlanner from '@/views/MealPlanner.vue';
+import RecipeImport from '@/views/RecipeImport.vue';
 
 const routes = [
   { path: '/', redirect: "/recipes" },
@@ -15,7 +16,8 @@ const routes = [
   { path: '/cocktails', name: 'Cocktails', component: Cocktails },
   { path: '/cupboard', name: 'Cupboard', component: Cupboard },
   { path: '/ingredients', name: 'Ingredients', component: IngredientManager },
-  { path: '/planner', name: 'MealPlanner', component: MealPlanner }
+  { path: '/planner', name: 'MealPlanner', component: MealPlanner },
+  { path: '/recipes/import', name: 'RecipeImport', component: RecipeImport }
 ];
 
 const router = createRouter({

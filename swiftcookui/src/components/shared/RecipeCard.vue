@@ -19,19 +19,32 @@
           {{ step.step }}
         </li>
       </ol>
+
+      <p v-if="recipe.sourceUrl || recipe.sourceTitle || recipe.sourceAuthor" class="source">
+        Source:
+        <a v-if="safeSourceUrl" :href="safeSourceUrl" target="_blank" rel="noopener noreferrer">{{ recipe.sourceTitle || recipe.sourceUrl }}</a>
+        <template v-else>{{ recipe.sourceTitle || recipe.sourceUrl }}</template>
+        <template v-if="recipe.sourceAuthor"> by {{ recipe.sourceAuthor }}</template>
+      </p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { PropType } from 'vue'
+import { computed, type PropType } from 'vue'
 import type { RecipeDto } from '@/interfaces/recipe'
 
-defineProps({
+const props = defineProps({
   recipe: {
     type: Object as PropType<RecipeDto>,
     required: true
   }
+})
+
+// Only http(s) links are rendered as anchors.
+const safeSourceUrl = computed(() => {
+  const url = props.recipe.sourceUrl
+  return url && /^https?:\/\//i.test(url) ? url : null
 })
 </script>
 
@@ -62,5 +75,10 @@ defineProps({
   border: none;
   font-size: 1.2rem;
   cursor: pointer;
+}
+.source {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #6b7280;
 }
 </style>

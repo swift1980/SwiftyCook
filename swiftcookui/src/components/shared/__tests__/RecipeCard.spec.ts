@@ -29,3 +29,24 @@ describe('RecipeCard ingredient notes', () => {
     expect(items).toEqual(['2 onions, finely chopped', 'Salt, to taste', '500 ml Water'])
   })
 })
+
+describe('RecipeCard source', () => {
+  it('links an http(s) source and shows the author', () => {
+    const wrapper = mount(RecipeCard, {
+      props: { recipe: { ...recipe, sourceUrl: 'https://example.com/p', sourceTitle: 'Great Pancakes', sourceAuthor: 'Jo' } },
+    })
+    const link = wrapper.find('.source a')
+    expect(link.attributes('href')).toBe('https://example.com/p')
+    expect(link.text()).toBe('Great Pancakes')
+    expect(wrapper.find('.source').text()).toContain('by Jo')
+  })
+
+  it('never renders a non-http source URL as a link', () => {
+    const wrapper = mount(RecipeCard, { props: { recipe: { ...recipe, sourceUrl: 'javascript:alert(1)' } } })
+    expect(wrapper.find('.source a').exists()).toBe(false)
+  })
+
+  it('omits the source line when none is set', () => {
+    expect(mount(RecipeCard, { props: { recipe } }).find('.source').exists()).toBe(false)
+  })
+})
