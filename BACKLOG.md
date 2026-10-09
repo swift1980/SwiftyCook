@@ -1045,7 +1045,7 @@ keeps one unit per ingredient). Both verified on MariaDB.
 
 ---
 
-## Ticket 23: "Purchased" button on the Shopping List — Open
+## Ticket 23: "Purchased" button on the Shopping List — Implemented
 
 **Scope:**
 - Moves all shopping list items to the Cupboard (per Ticket 22's merge
@@ -1055,6 +1055,8 @@ keeps one unit per ingredient). Both verified on MariaDB.
 - All-or-nothing in v1; per-item partial purchase is a later improvement.
 
 **Order:** Depends on Tickets 21 and 22.
+
+**Resolution:** Extracted the Cupboard merge rules into `CupboardStockService` (used unchanged by `CupboardController.Create`). `POST /api/shoppinglist/purchase` takes the confirmed `itemIds`, moves exactly those rows to the Cupboard and deletes them in one transaction (409 if any id is gone or changed mid-purchase, 400 for a negative amount; any failure rolls everything back, covered by a test). Unit-mismatch and no-amount items become their own Cupboard rows. The Shopping List page has a "Purchased" button and a confirmation dialog listing the items; a failed purchase keeps the list, shows the error and reloads it.
 
 ---
 

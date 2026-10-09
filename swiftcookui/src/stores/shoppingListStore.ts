@@ -40,6 +40,20 @@ export const useShoppingListStore = defineStore('shoppingList', {
       }
     },
 
+    /** Moves the given rows to the Cupboard on the server (all or nothing), then drops them locally. */
+    async purchase(ids: number[]) {
+      this.error = null
+      try {
+        await api.post('/shoppinglist/purchase', { itemIds: ids });
+        this.items = this.items.filter(i => !ids.includes(i.id));
+      } catch (err: unknown) {
+        // The list may have changed on the server, so resync (fetchAll clears the error)
+        const message = getErrorMessage(err, 'Failed to purchase the shopping list');
+        await this.fetchAll();
+        this.error = message;
+        throw err;
+      }
+    },
     async removeItem(id: number) {
       this.error = null
       try {

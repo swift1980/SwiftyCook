@@ -45,6 +45,7 @@ builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddScoped<swiftcookapi.Services.IRecipeIngredientSearchService,
     swiftcookapi.Services.RecipeIngredientSearchService>();
 builder.Services.AddSingleton<swiftcookapi.Services.UnitConverter>();
+builder.Services.AddScoped<swiftcookapi.Services.CupboardStockService>();
 
 var app = builder.Build();
 

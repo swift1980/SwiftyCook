@@ -30,7 +30,7 @@ namespace swiftcookapi.tests
         private static CupboardController Controller(SwiftCookDbContext ctx)
         {
             var mapper = new MapperConfiguration(c => c.AddProfile<MappingProfile>()).CreateMapper();
-            return new CupboardController(ctx, mapper, new UnitConverter());
+            return new CupboardController(ctx, mapper, new CupboardStockService(ctx, new UnitConverter()));
         }
 
         private static CupboardCreateDto Dto(int unitId, decimal? amount, int ingredientId = 1) =>

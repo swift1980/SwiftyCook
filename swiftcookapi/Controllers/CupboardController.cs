@@ -14,13 +14,13 @@ namespace swiftcookapi.Controllers
         private readonly SwiftCookDbContext _context;
         private readonly IMapper _mapper;
 
-        private readonly UnitConverter _converter;
+        private readonly CupboardStockService _stock;
 
-        public CupboardController(SwiftCookDbContext context, IMapper mapper, UnitConverter converter)
+        public CupboardController(SwiftCookDbContext context, IMapper mapper, CupboardStockService stock)
         {
             _context = context;
             _mapper = mapper;
-            _converter = converter;
+            _stock = stock;
         }
 
         [HttpGet]
@@ -49,46 +49,7 @@ namespace swiftcookapi.Controllers
             if (ingredient == null || unit == null)
                 return BadRequest(new { message = "Unknown ingredient or unit." });
 
-            var rows = await _context.Cupboards
-                .Include(c => c.Unit)
-                .Where(c => c.IngredientId == dto.IngredientId)
-                .ToListAsync();
-
-            var sameUnit = rows.FirstOrDefault(r => r.UnitId == dto.UnitId);
-            Cupboard result;
-
-            if (sameUnit != null)
-            {
-                sameUnit.Amount = sameUnit.Amount.HasValue && dto.Amount.HasValue
-                    ? sameUnit.Amount + dto.Amount
-                    : null;
-                result = sameUnit;
-            }
-            else
-            {
-                var convertible = dto.Amount.HasValue
-                    ? rows.FirstOrDefault(r => r.Amount.HasValue && _converter.CanConvert(unit, r.Unit))
-                    : null;
-
-                if (convertible != null
-                    && _converter.TryAdd(convertible.Amount!.Value, convertible.Unit, dto.Amount!.Value, unit, out var sum))
-                {
-                    var candidates = new[] { convertible.Unit, unit };
-                    var (amount, displayUnit) = _converter.ToDisplay(sum, convertible.Unit, candidates);
-
-                    // The unit is part of the key, so a unit change means replacing the row.
-                    _context.Cupboards.Remove(convertible);
-                    result = new Cupboard { IngredientId = dto.IngredientId, UnitId = displayUnit.Id, Amount = amount };
-                    _context.Cupboards.Add(result);
-                }
-                else
-                {
-                    result = new Cupboard { IngredientId = dto.IngredientId, UnitId = dto.UnitId, Amount = dto.Amount };
-                    _context.Cupboards.Add(result);
-                }
-            }
-
-            await _context.SaveChangesAsync();
+            var result = await _stock.AddStockAsync(dto.IngredientId, unit, dto.Amount);
 
             var created = await _context.Cupboards
                 .Include(c => c.Ingredient)

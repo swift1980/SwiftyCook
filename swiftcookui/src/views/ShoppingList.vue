@@ -32,11 +32,28 @@
       </li>
     </ul>
     <div v-else-if="!shoppingListStore.loading" class="empty-state">Your shopping list is empty.</div>
+
+    <button v-if="shoppingListStore.items.length" type="button" class="purchased-btn" @click="confirming = true">Purchased</button>
+
+    <div v-if="confirming" class="overlay" @click.self="confirming = false">
+      <div class="dialog" role="dialog" aria-label="Confirm purchase">
+        <h3>Move to your cupboard?</h3>
+        <ul class="confirm-items">
+          <li v-for="item in shoppingListStore.items" :key="item.id">
+            {{ item.ingredientName }}<template v-if="item.amount != null"> – {{ item.amount }} {{ item.unitName }}</template>
+          </li>
+        </ul>
+        <div class="dialog-actions">
+          <button type="button" class="cancel" @click="confirming = false">Cancel</button>
+          <button type="button" class="confirm" :disabled="purchasing" @click="onPurchase">Confirm</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { reactive, onMounted } from 'vue'
+  import { reactive, ref, onMounted } from 'vue'
   import { useShoppingListStore } from '@/stores/shoppingListStore'
   import { useIngredientStore } from '@/stores/ingredientStore'
   import { useUnitStore } from '@/stores/unitStore'
@@ -73,6 +90,21 @@
     form.ingredientId = null
     form.unitId = null
     form.amount = null
+  }
+
+  const confirming = ref(false)
+  const purchasing = ref(false)
+
+  async function onPurchase() {
+    purchasing.value = true
+    try {
+      await shoppingListStore.purchase(shoppingListStore.items.map(i => i.id))
+    } catch {
+      // the store exposes the error
+    } finally {
+      purchasing.value = false
+      confirming.value = false
+    }
   }
 
   async function onRemove(id: number) {
@@ -141,5 +173,40 @@
 
 .empty-state {
   color: #666;
+}
+
+.purchased-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+
+.dialog {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  width: min(26rem, 92vw);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.confirm-items {
+  padding-left: 1.25rem;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 </style>
