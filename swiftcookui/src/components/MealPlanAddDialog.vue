@@ -16,7 +16,7 @@
           >{{ r.name }}</button>
         </li>
       </ul>
-      <div v-if="!recipeStore.loading && !matches.length" class="empty">No matching recipes.</div>
+      <div v-if="!recipeStore.loading && !cocktailStore.loading && !matches.length" class="empty">No matching recipes.</div>
 
       <label class="servings">
         Servings
@@ -35,6 +35,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRecipeStore } from '@/stores/recipeStore'
+import { useCocktailStore } from '@/stores/cocktailStore'
 import { useMealPlanStore } from '@/stores/mealPlanStore'
 import { COCKTAIL_CATEGORY_ID, type MealType } from '@/interfaces/mealPlan'
 import type { RecipeDto } from '@/interfaces/recipe'
@@ -44,6 +45,7 @@ const props = defineProps<{ date: string; mealType: MealType }>()
 const emit = defineEmits<{ close: []; added: [] }>()
 
 const recipeStore = useRecipeStore()
+const cocktailStore = useCocktailStore()
 const mealPlanStore = useMealPlanStore()
 
 const query = ref('')
@@ -51,16 +53,23 @@ const selectedId = ref<number | null>(null)
 const servings = ref(1)
 const error = ref<string | null>(null)
 
+// The recipe list excludes cocktails, which have their own endpoint.
+const isCocktailRow = props.mealType === 'Cocktail'
+
 onMounted(() => {
-  if (!recipeStore.recipes.length) recipeStore.fetchAllRecipes()
+  if (isCocktailRow) {
+    if (!cocktailStore.cocktails.length) cocktailStore.fetchCocktailAll()
+  } else if (!recipeStore.recipes.length) {
+    recipeStore.fetchAllRecipes()
+  }
 })
 
 // The Cocktail row only offers cocktails; every other row excludes them.
 const matches = computed(() => {
-  const wantCocktail = props.mealType === 'Cocktail'
   const q = query.value.trim().toLowerCase()
-  return recipeStore.recipes
-    .filter(r => (r.categoryIds ?? []).includes(COCKTAIL_CATEGORY_ID) === wantCocktail)
+  const source = isCocktailRow ? cocktailStore.cocktails : recipeStore.recipes
+  return source
+    .filter(r => (r.categoryIds ?? []).includes(COCKTAIL_CATEGORY_ID) === isCocktailRow)
     .filter(r => !q || r.name.toLowerCase().includes(q))
 })
 

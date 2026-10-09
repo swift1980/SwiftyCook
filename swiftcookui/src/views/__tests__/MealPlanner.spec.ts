@@ -17,14 +17,18 @@ const recipe = (id: number, name: string, categoryIds: number[], yieldN = 1): Re
   id, name, prepTime: 0, cookTime: 0, yield: yieldN, categoryIds, categories: [], tags: [], tools: [], ingredients: [], instructions: [],
 })
 
-const recipes = [recipe(12, 'Omelette', [4], 4), recipe(1, 'Margarita', [1])]
+// Like the real API: /recipe excludes cocktails, /cocktail returns only cocktails.
+const recipes = [recipe(12, 'Omelette', [4], 4)]
+const cocktails = [recipe(1, 'Margarita', [1])]
 
 const entry: MealPlanEntryDto = {
   id: 7, date: '2026-10-06', mealType: 'Dinner', recipeId: 12, recipeName: 'Omelette', servings: 2, sortOrder: 0,
 }
 
 function setup(entries: MealPlanEntryDto[] = [entry]) {
-  mockedApi.get.mockImplementation(async (url: string) => ({ data: url === '/recipe' ? recipes : entries }))
+  mockedApi.get.mockImplementation(async (url: string) => ({
+    data: url === '/recipe' ? recipes : url === '/cocktail' ? cocktails : entries,
+  }))
   const store = useMealPlanStore()
   store.weekStart = '2026-10-05'
   return mount(MealPlanner, { attachTo: document.body })
