@@ -943,7 +943,7 @@ model, DTO or controller.
 
 ---
 
-## Ticket 18: Meal Planner UI — Open
+## Ticket 18: Meal Planner UI — Implemented
 
 **Scope:**
 - New `/planner` route, sidebar link, `mealPlan` Pinia store and week-grid
@@ -956,6 +956,8 @@ model, DTO or controller.
 - No drag-and-drop in v1 (UI refinement is a later enhancement).
 
 **Order:** Depends on Ticket 17.
+
+**Resolution:** Added `/planner` (sidebar "Meal Planner"), `mealPlan` store, `MealPlanner.vue` and the shared `MealPlanAddDialog.vue`. The grid is 7 days x 5 meal types with Monday start, previous/next/this-week navigation, inline servings edit and remove; at 700px or narrower it shows one day with day tabs. The dialog takes a `date` and `mealType`, searches recipes by name locally, defaults servings to the recipe yield, and offers only cocktails in the Cocktail row (category 1) and none elsewhere. Week fetches are guarded by a request counter so a slow earlier response cannot overwrite a newer week. Ticket 19 should extend the dialog with date, meal type and servings inputs. The planner reads `/recipe`, which loads every recipe in full; fine at this scale.
 
 ---
 
