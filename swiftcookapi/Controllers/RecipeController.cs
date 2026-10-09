@@ -213,6 +213,24 @@ namespace swiftcookapi.Controllers
 
             return Ok(outcome.Result);
         }
+
+        [HttpPost("search/cupboard")]
+        [ProducesResponseType(typeof(PagedResultDto<RecipeSearchResultDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<PagedResultDto<RecipeSearchResultDto>>> SearchByCupboard(
+            [FromBody] CupboardSearchRequestDto request,
+            CancellationToken cancellationToken)
+        {
+            if (request == null)
+                return BadRequest("Request body is required.");
+
+            var outcome = await _ingredientSearchService.SearchCupboardAsync(request, cancellationToken);
+
+            if (!outcome.IsValid)
+                return BadRequest(outcome.Error);
+
+            return Ok(outcome.Result);
+        }
     }
 
 }

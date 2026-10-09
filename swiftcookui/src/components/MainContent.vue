@@ -17,6 +17,7 @@
       <AdvancedSearch v-if="isIngredientSearchRoute && showAdvancedSearch"
                       :allowed-category-ids="route.name === 'Cocktails' ? [6] : undefined"
                       @search="onAdvancedSearch"
+                      @cupboard-search="onCupboardSearch"
                       @clear="onAdvancedClear" />
 
       <!-- Pagination controls — visible only when server results are active -->
@@ -64,7 +65,7 @@
   import { useIngredientSearch } from '@/composables/useIngredientSearch'
   import { useNameSearch } from '@/composables/useNameSearch'
   import AdvancedSearch from '@/components/AdvancedSearch.vue'
-  import type { IngredientSearchParams } from '@/interfaces/ingredientSearch'
+  import type { CupboardSearchParams, IngredientSearchParams } from '@/interfaces/ingredientSearch'
 
   const route = useRoute()
 
@@ -72,7 +73,7 @@
   const showAdvancedSearch = ref(false)
   const showCategories = ref(false)
   const selectedCategoryIds = ref<number[]>([])
-  const lastParams = ref<IngredientSearchParams | null>(null)
+  const hasActiveSearch = ref(false)
 
   // Ticket 5: Cocktails reuse the same mandatory/optional/threshold ingredient
   // search as Recipes, against their own endpoint (Cocktails are Recipes
@@ -111,17 +112,22 @@
   }
 
   function onAdvancedSearch(params: IngredientSearchParams) {
-    lastParams.value = params
+    hasActiveSearch.value = true
     activeIngredientSearch.value.search(params, 1)
   }
 
+  function onCupboardSearch(params: CupboardSearchParams) {
+    hasActiveSearch.value = true
+    activeIngredientSearch.value.searchCupboard(params, 1)
+  }
+
   function onAdvancedClear() {
-    lastParams.value = null
+    hasActiveSearch.value = false
     activeIngredientSearch.value.clear()
   }
 
   function retrySearch() {
-    if (lastParams.value) activeIngredientSearch.value.search(lastParams.value, 1)
+    if (hasActiveSearch.value) activeIngredientSearch.value.loadPage(1)
   }
 
   const recipesProps = computed(() => ({

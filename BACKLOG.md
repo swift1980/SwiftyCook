@@ -805,7 +805,7 @@ interaction with this slider.
 
 ---
 
-## Ticket 13: Rework "Use Cupboard" — makeable recipes — Open
+## Ticket 13: Rework "Use Cupboard" — makeable recipes — Implemented
 
 **Problem:** "Use Cupboard" currently dumps every cupboard item into the
 optional list, which yields poor results. Users want recipes they can
@@ -826,6 +826,14 @@ actually make from (a selection of) their cupboard.
 **Order:** Depends on Ticket 11 (`IsStaple`).
 
 **Assumptions:** single-user app; global (not per-user) staples.
+
+**Resolution:** `POST /api/recipe/search/cupboard` and `/api/cocktail/search/cupboard`
+(`SearchCupboardAsync`, request `{ingredientIds, includeMissing, page, pageSize}`).
+A recipe needs at least one selected ingredient in both modes (staples alone
+never match). Results are ranked by fewest missing, then most selected, and
+carry `missingIngredientCount`; cards show "Missing N". The UI's "Use my
+cupboard" now opens a checklist (all ticked) with the include-missing toggle and
+no longer touches the ingredient selection.
 
 ---
 

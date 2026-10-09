@@ -28,4 +28,9 @@ public class RecipeSearchResultDto
     /// Distinct ingredient count on the recipe (counted by distinct IngredientId).
     /// </summary>
     public int TotalIngredientCount { get; set; }
+
+    /// <summary>
+    /// Cupboard search only: distinct recipe ingredients that are neither selected nor staples. Null for ingredient search.
+    /// </summary>
+    public int? MissingIngredientCount { get; set; }
 }

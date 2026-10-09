@@ -117,4 +117,18 @@ describe('useIngredientSearch', () => {
 
     expect(mockedApi.post).toHaveBeenCalledWith('/cocktail/search/ingredients', requestBody)
   })
-})
+
+  it('searchCupboard posts to the cupboard endpoint and loadPage repeats it (Ticket 13)', async () => {
+    mockedApi.post.mockResolvedValue({ data: page })
+
+    const { searchCupboard, loadPage } = useIngredientSearch('/cocktail/search/ingredients')
+    await searchCupboard({ ingredientIds: [1, 2], includeMissing: true })
+    await loadPage(2)
+
+    expect(mockedApi.post).toHaveBeenNthCalledWith(1, '/cocktail/search/cupboard', {
+      ingredientIds: [1, 2], includeMissing: true, page: 1, pageSize: 20,
+    })
+    expect(mockedApi.post).toHaveBeenNthCalledWith(2, '/cocktail/search/cupboard', {
+      ingredientIds: [1, 2], includeMissing: true, page: 2, pageSize: 20,
+    })
+  })})

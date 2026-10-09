@@ -220,4 +220,60 @@ describe('AdvancedSearch', () => {
     expect(wrapper.find('.suggestion-btn').exists()).toBe(false)
     expect(wrapper.find('.add-new-btn').exists()).toBe(false)
   })
-})
+
+  describe('cupboard search (Ticket 13)', () => {
+    const cupboardRows = [
+      { ingredientId: 100, ingredientName: 'Beef', unitId: 2, amount: 500, unitName: 'gram' },
+      { ingredientId: 100, ingredientName: 'Beef', unitId: 1, amount: 1, unitName: 'sgl' },
+      { ingredientId: 200, ingredientName: 'Carrot', unitId: 1, amount: 3, unitName: 'sgl' },
+    ]
+
+    function withCupboard() {
+      mockedApi.get.mockImplementation((url: string) => {
+        if (url === '/cupboard') return Promise.resolve({ data: cupboardRows })
+        if (url === '/ingredient') return Promise.resolve({ data: ingredients })
+        if (url === '/ingredienttype') return Promise.resolve({ data: types })
+        if (url === '/ingredientcategory') return Promise.resolve({ data: categories })
+        return Promise.resolve({ data: [] })
+      })
+    }
+
+    it('lists each cupboard ingredient once, all ticked, without touching the ingredient selection', async () => {
+      withCupboard()
+      const wrapper = mount(AdvancedSearch)
+      await flushPromises()
+      await wrapper.find('.cupboard-btn').trigger('click')
+      await flushPromises()
+
+      const choices = wrapper.findAll('.cupboard-choice')
+      expect(choices.map((c) => c.text())).toEqual(['Beef', 'Carrot'])
+      expect(choices.every((c) => (c.find('input').element as HTMLInputElement).checked)).toBe(true)
+      expect(wrapper.findAll('.ingredient-tag')).toHaveLength(0)
+    })
+
+    it('emits only the ticked ingredients and the include-missing toggle', async () => {
+      withCupboard()
+      const wrapper = mount(AdvancedSearch)
+      await flushPromises()
+      await wrapper.find('.cupboard-btn').trigger('click')
+      await flushPromises()
+
+      await wrapper.findAll('.cupboard-choice input')[1].setValue(false) // untick Carrot
+      await wrapper.find('.cupboard-include-missing input').setValue(true)
+      await wrapper.find('.cupboard-search-btn').trigger('click')
+
+      expect(wrapper.emitted('cupboard-search')![0]).toEqual([{ ingredientIds: [100], includeMissing: true }])
+    })
+
+    it('disables the search when nothing is ticked', async () => {
+      withCupboard()
+      const wrapper = mount(AdvancedSearch)
+      await flushPromises()
+      await wrapper.find('.cupboard-btn').trigger('click')
+      await flushPromises()
+
+      for (const box of wrapper.findAll('.cupboard-choice input')) await box.setValue(false)
+
+      expect(wrapper.find('.cupboard-search-btn').attributes('disabled')).toBeDefined()
+    })
+  })})

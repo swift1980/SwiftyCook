@@ -52,6 +52,7 @@
       optionalMatchCount: dto.optionalMatchCount,
       optionalTotal: dto.optionalTotal,
       matchedOptionalIds: dto.matchedOptionalIds,
+      missingCount: dto.missingIngredientCount,
     }
   }
 

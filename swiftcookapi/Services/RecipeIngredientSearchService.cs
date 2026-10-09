@@ -8,6 +8,10 @@ namespace swiftcookapi.Services
         Task<RecipeIngredientSearchOutcome> SearchAsync(
             RecipeIngredientSearchRequestDto request,
             CancellationToken cancellationToken = default);
+
+        Task<RecipeIngredientSearchOutcome> SearchCupboardAsync(
+            CupboardSearchRequestDto request,
+            CancellationToken cancellationToken = default);
     }
 
     public class RecipeIngredientSearchService : IRecipeIngredientSearchService
@@ -152,6 +156,103 @@ namespace swiftcookapi.Services
             };
 
             return RecipeIngredientSearchOutcome.Success(result);
+        }
+
+        /// <summary>
+        /// "Recipes I can make" (Ticket 13). Presence-only: amounts and units are ignored. A recipe ingredient
+        /// is covered when it is among the selected cupboard ingredients or is a staple.
+        /// </summary>
+        public async Task<RecipeIngredientSearchOutcome> SearchCupboardAsync(
+            CupboardSearchRequestDto request,
+            CancellationToken cancellationToken = default)
+        {
+            var selected = (request.IngredientIds ?? new()).Distinct().ToList();
+            if (selected.Count == 0)
+                return RecipeIngredientSearchOutcome.Invalid("Select at least one cupboard ingredient.");
+
+            var existingIds = await _context.Ingredients
+                .Where(i => selected.Contains(i.Id))
+                .Select(i => i.Id)
+                .ToListAsync(cancellationToken);
+            var unknownIds = selected.Except(existingIds).ToList();
+            if (unknownIds.Count > 0)
+            {
+                return RecipeIngredientSearchOutcome.Invalid(
+                    $"Unknown ingredient Id(s): {string.Join(", ", unknownIds.OrderBy(id => id))}.");
+            }
+
+            var staples = await _context.Ingredients
+                .Where(i => i.IsStaple)
+                .Select(i => i.Id)
+                .ToListAsync(cancellationToken);
+
+            var page = request.Page < 1 ? 1 : request.Page;
+            var pageSize = request.PageSize < 1 ? 1
+                : request.PageSize > MaxPageSize ? MaxPageSize
+                : request.PageSize;
+
+            var distinctRecipeIngredients = _context.RecipeIngredients
+                .Where(ri => request.CategoryId == null
+                          || ri.Recipe.RecipeCategories.Any(rc => rc.CategoryId == request.CategoryId))
+                .Select(ri => new { ri.RecipeId, ri.IngredientId })
+                .Distinct();
+
+            var includeMissing = request.IncludeMissing;
+
+            var aggregated = distinctRecipeIngredients
+                .GroupBy(x => x.RecipeId)
+                .Select(g => new
+                {
+                    RecipeId = g.Key,
+                    Total = g.Count(),
+                    Selected = g.Count(x => selected.Contains(x.IngredientId)),
+                    Covered = g.Count(x => selected.Contains(x.IngredientId) || staples.Contains(x.IngredientId))
+                })
+                .Where(x => x.Selected >= 1 && (includeMissing || x.Covered == x.Total));
+
+            var projected = from a in aggregated
+                            join r in _context.Recipes on a.RecipeId equals r.Id
+                            select new
+                            {
+                                a.RecipeId,
+                                r.Name,
+                                r.Image,
+                                a.Total,
+                                a.Selected,
+                                Missing = a.Total - a.Covered
+                            };
+
+            var totalCount = await projected.CountAsync(cancellationToken);
+
+            var pageRows = await projected
+                .OrderBy(x => x.Missing)
+                .ThenByDescending(x => x.Selected)
+                .ThenBy(x => x.Name)
+                .ThenBy(x => x.RecipeId)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            var items = pageRows.Select(x => new RecipeSearchResultDto
+            {
+                RecipeId = x.RecipeId,
+                Name = x.Name,
+                Image = x.Image,
+                OptionalMatchCount = x.Selected,
+                OptionalTotal = selected.Count,
+                ExtraIngredientCount = x.Total - x.Selected,
+                TotalIngredientCount = x.Total,
+                MissingIngredientCount = x.Missing
+            }).ToList();
+
+            return RecipeIngredientSearchOutcome.Success(new PagedResultDto<RecipeSearchResultDto>
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            });
         }
     }
 }

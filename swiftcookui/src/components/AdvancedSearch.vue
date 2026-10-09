@@ -70,12 +70,30 @@
 
     <span v-if="ingredientStore.error" class="create-error">{{ ingredientStore.error }}</span>
 
+    <!-- Ticket 13: "recipes I can make" from a selection of cupboard items -->
+    <div v-if="showCupboard" class="advanced-search__cupboard">
+      <p v-if="!cupboardChoices.length" class="cupboard-empty">Your cupboard is empty.</p>
+      <template v-else>
+        <label v-for="item in cupboardChoices" :key="item.ingredientId" class="cupboard-choice">
+          <input type="checkbox" :checked="!unticked.has(item.ingredientId)" @change="toggleCupboardItem(item.ingredientId)" />
+          {{ item.ingredientName }}
+        </label>
+        <label class="cupboard-include-missing">
+          <input v-model="includeMissing" type="checkbox" />
+          Include recipes with missing ingredients
+        </label>
+        <button type="button" class="cupboard-search-btn" :disabled="!tickedCupboardIds.length" @click="searchCupboard">
+          Find recipes I can make
+        </button>
+      </template>
+    </div>
+
     <div class="advanced-search__actions">
       <button type="button"
               class="cupboard-btn"
               :disabled="cupboardStore.loading"
-              @click="useCupboard">
-        Use my cupboard
+              @click="toggleCupboard">
+        {{ showCupboard ? 'Hide my cupboard' : 'Use my cupboard' }}
       </button>
       <button type="button"
               class="search-btn"
@@ -96,10 +114,11 @@
   import { useIngredientCategoryStore } from '@/stores/ingredientCategoryStore'
   import { useCupboardStore } from '@/stores/cupboardStore'
   import { findClosestMatch } from '@/utils/similarity'
-  import type { IngredientSearchParams } from '@/interfaces/ingredientSearch'
+  import type { CupboardSearchParams, IngredientSearchParams } from '@/interfaces/ingredientSearch'
 
   const emit = defineEmits<{
     (e: 'search', params: IngredientSearchParams): void
+    (e: 'cupboard-search', params: CupboardSearchParams): void
     (e: 'clear'): void
   }>()
 
@@ -312,18 +331,37 @@
     }
   }
 
-  /** Prefills the optional ingredient list from the user's cupboard contents (Amount is ignored - presence-only). */
-  async function useCupboard() {
-    if (!ingredientStore.ingredients.length) await ingredientStore.fetchAll()
-    if (!cupboardStore.items.length) await cupboardStore.fetchAll()
-
+  /** Cupboard items to cook with, one entry per ingredient (a cupboard row exists per unit). */
+  const cupboardChoices = computed(() => {
+    const byId = new Map<number, { ingredientId: number; ingredientName: string }>()
     for (const item of cupboardStore.items) {
-      if (item.ingredientId in selectedMap) continue
-      // Only add ingredients we can resolve a type for, so they render in a category box
-      const known = ingredientStore.ingredients.find((i) => i.id === item.ingredientId)
-      if (!known) continue
-      selectedMap[item.ingredientId] = { id: item.ingredientId, name: item.ingredientName, mandatory: false, typeName: known.typeName }
+      if (!byId.has(item.ingredientId)) byId.set(item.ingredientId, { ingredientId: item.ingredientId, ingredientName: item.ingredientName })
     }
+    return [...byId.values()].sort((a, b) => a.ingredientName.localeCompare(b.ingredientName))
+  })
+
+  // Everything is ticked by default, so only the unticked ids are tracked
+  const unticked = reactive(new Set<number>())
+  const includeMissing = ref(false)
+  const showCupboard = ref(false)
+
+  const tickedCupboardIds = computed(() =>
+    cupboardChoices.value.filter((c) => !unticked.has(c.ingredientId)).map((c) => c.ingredientId)
+  )
+
+  function toggleCupboardItem(id: number) {
+    if (unticked.has(id)) unticked.delete(id)
+    else unticked.add(id)
+  }
+
+  async function toggleCupboard() {
+    showCupboard.value = !showCupboard.value
+    if (showCupboard.value) await cupboardStore.fetchAll()
+  }
+
+  function searchCupboard() {
+    if (!tickedCupboardIds.value.length) return
+    emit('cupboard-search', { ingredientIds: tickedCupboardIds.value, includeMissing: includeMissing.value })
   }
 
   function submitSearch() {
@@ -343,6 +381,9 @@
     threshold.value = 0
     thresholdTouched.value = false
     isDirty.value = false
+    unticked.clear()
+    includeMissing.value = false
+    showCupboard.value = false
     emit('clear')
   }
 
@@ -568,6 +609,32 @@
       &:hover {
         background: #e8f4e8;
       }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .advanced-search__cupboard {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    margin: 0.5rem 0;
+
+    .cupboard-include-missing {
+      font-weight: 600;
+    }
+
+    .cupboard-search-btn {
+      padding: 4px 10px;
+      border: 1px solid #2d6a2d;
+      border-radius: 4px;
+      background: #2d6a2d;
+      color: #fff;
+      cursor: pointer;
 
       &:disabled {
         opacity: 0.5;

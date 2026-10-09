@@ -6,6 +6,9 @@
 	<!-- Show real data once loaded -->
     <div v-for="recipe in items" :key="recipe.id" class="card" @click="openRecipe(recipe)">
       {{ recipe.name }}
+      <span v-if="recipe.missingCount" class="missing-badge">
+        Missing {{ recipe.missingCount }}
+      </span>
     </div>
   </transition-group>
   <!-- Recipe detail modal -->
@@ -64,6 +67,12 @@
 
   .detail-error {
     color: #a00;
+  }
+
+  .missing-badge {
+    display: block;
+    font-size: 0.75rem;
+    color: #a60;
   }
 
   /* --- Card animation --- */
