@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "recipe-import.schema.json",
+  "title": "SwiftyCook recipe import",
+  "description": "One recipe or an array of up to 50 recipes.",
+  "oneOf": [
+    { "$ref": "#/$defs/recipe" },
+    {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50,
+      "items": { "$ref": "#/$defs/recipe" }
+    }
+  ],
+  "$defs": {
+    "shortName": { "type": "string", "minLength": 1, "maxLength": 50 },
+    "nameList": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "$ref": "#/$defs/shortName" }
+    },
+    "ingredient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "$ref": "#/$defs/shortName" },
+        "amount": { "type": "number", "minimum": 0 },
+        "unit": { "type": "string", "minLength": 1, "maxLength": 50 },
+        "note": { "type": "string", "maxLength": 255 }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string", "maxLength": 500 },
+        "title": { "type": "string", "maxLength": 255 },
+        "author": { "type": "string", "maxLength": 255 }
+      }
+    },
+    "recipe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "ingredients", "instructions"],
+      "properties": {
+        "name": { "$ref": "#/$defs/shortName" },
+        "description": { "type": "string", "maxLength": 5000 },
+        "image": { "type": "string", "format": "uri", "maxLength": 255 },
+        "prepTime": { "type": "integer", "minimum": 0 },
+        "cookTime": { "type": "integer", "minimum": 0 },
+        "yield": { "type": "integer", "minimum": 1 },
+        "categories": { "$ref": "#/$defs/nameList" },
+        "tags": { "$ref": "#/$defs/nameList" },
+        "tools": { "$ref": "#/$defs/nameList" },
+        "ingredients": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": { "$ref": "#/$defs/ingredient" }
+        },
+        "instructions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": { "type": "string", "minLength": 1, "maxLength": 5000 }
+        },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Simple Tomato Soup",
+    "description": "A quick weeknight soup.",
+    "image": "https://example.com/images/tomato-soup.jpg",
+    "prepTime": 10,
+    "cookTime": 25,
+    "yield": 4,
+    "categories": ["Soup"],
+    "tags": ["Vegetarian", "Quick"],
+    "tools": ["Saucepan", "Blender"],
+    "ingredients": [
+      { "name": "Olive oil", "amount": 1, "unit": "tbsp" },
+      { "name": "Onion", "amount": 2, "note": "finely chopped" },
+      { "name": "Tinned tomatoes", "amount": 800, "unit": "g" },
+      { "name": "Vegetable stock", "amount": 500, "unit": "ml" },
+      { "name": "Salt", "note": "to taste" }
+    ],
+    "instructions": [
+      "Heat the oil and soften the onion for 5 minutes.",
+      "Add the tomatoes and stock, then simmer for 20 minutes.",
+      "Blend until smooth and season."
+    ],
+    "source": {
+      "url": "https://example.com/tomato-soup",
+      "title": "Simple Tomato Soup",
+      "author": "A. Cook"
+    }
+  }
+]

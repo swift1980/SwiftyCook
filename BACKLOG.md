@@ -858,7 +858,7 @@ import (Ticket 16) or manual entry.
 
 ---
 
-## Ticket 15: Recipe import file format and spec (design only) — Open
+## Ticket 15: Recipe import file format and spec (design only) — Implemented
 
 **Problem:** Recipes come from many sources (webpages, magazines, blogs) and
 need one standardised format for database insertion.
@@ -880,7 +880,7 @@ need one standardised format for database insertion.
 
 **Order:** Independent; must land before Ticket 16.
 
-**Resolution:** Added nullable `Note` (255) to `RecipeIngredient` (model, `init.sql`, `upgrade/ticket-14-ingredient-note.sql` + down script, DTOs). `RecipeForm.vue` has a note input per row and sends `amount: null` rather than 0 when blank. `RecipeCard.vue` renders `2 onions, finely chopped` and hides a missing amount. Ticket 16's importer must set `Note`. PUT recipe update still ignores ingredients (pre-existing).
+**Resolution:** Added `docs/recipe-import-format.md` (fields, limits, UK/metric unit guidance, LLM prompt template), `docs/recipe-import.schema.json` (JSON Schema 2020-12) and `docs/recipe-import.example.json`; the example and schema were validated with ajv. Limits: 1 MB file, 50 recipes, 100 ingredients and 100 steps per recipe, 20 categories/tags/tools. Ticket 16 should enforce these and reject unknown properties.
 
 ---
 
