@@ -63,5 +63,27 @@ export const useIngredientTypeStore = defineStore('ingredientType', {
         throw err;
       }
     },
+
+    async updateIngredientType(id: number, dto: IngredientTypeCreateDto) {
+      this.error = null;
+      try {
+        await api.put(`/ingredienttype/${id}`, dto);
+        await this.fetchAll();
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to update ingredient type');
+        throw err;
+      }
+    },
+
+    async deleteIngredientType(id: number) {
+      this.error = null;
+      try {
+        await api.delete(`/ingredienttype/${id}`);
+        this.ingredientTypes = this.ingredientTypes.filter((t) => t.id !== id);
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to delete ingredient type');
+        throw err;
+      }
+    },
   },
 });

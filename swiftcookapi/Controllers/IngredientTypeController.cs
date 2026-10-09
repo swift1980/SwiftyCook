@@ -87,6 +87,17 @@ namespace swiftcookapi.Controllers
         {
             var type = await _context.IngredientTypes.FindAsync(id);
             if (type == null) return NotFound();
+
+            var ingredientCount = await _context.Ingredients.CountAsync(i => i.TypeId == id);
+            var isFallback = await _context.IngredientCategories.AnyAsync(c => c.FallbackTypeId == id);
+            if (ingredientCount > 0 || isFallback)
+            {
+                var reasons = new List<string>();
+                if (ingredientCount > 0) reasons.Add($"{ingredientCount} ingredient{(ingredientCount == 1 ? "" : "s")} use it");
+                if (isFallback) reasons.Add("it is a category's fallback type");
+                return Conflict(new { message = $"Cannot delete type '{type.Name}': {string.Join(" and ", reasons)}." });
+            }
+
             _context.IngredientTypes.Remove(type);
             await _context.SaveChangesAsync();
             return NoContent();

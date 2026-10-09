@@ -38,3 +38,8 @@ INSERT IGNORE INTO Ingredient (Id, Name, PluralName, TypeId) VALUES
 (32,'Campari', '', 25),
 (33,'Sweet vermouth', '', 25),
 (34,'Orange slice', 'Orange slices', 17);
+
+-- Pantry staples (Ticket 11): treated as always available when matching recipes
+-- against the Cupboard. Only applies to a fresh database; curate via the
+-- Ingredients page afterwards.
+UPDATE Ingredient SET IsStaple = TRUE WHERE Name IN ('Salt', 'Olive Oil');

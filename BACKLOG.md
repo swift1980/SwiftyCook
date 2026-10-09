@@ -749,7 +749,7 @@ per-category fallback infrastructure) — reusing the already-seeded
 
 ---
 
-## Ticket 11: Ingredient and IngredientType CRUD page (with `IsStaple`) — Open
+## Ticket 11: Ingredient and IngredientType CRUD page (with `IsStaple`) — ✅ Implemented
 
 **Problem:** `IngredientController` and `IngredientTypeController` already
 expose full GET/POST/PUT/DELETE, but there is no UI to manage ingredients or
@@ -768,6 +768,18 @@ types. Ticket 13 also needs a way to flag pantry staples.
 - Rename is allowed freely.
 
 **Out of scope:** merge-duplicates, reassign-on-delete, soft delete/audit.
+
+**Resolution:** `Ingredient.IsStaple` added (model, DTOs, `init.sql`, seed for
+Salt/Olive Oil). The project has no EF migrations — schema is applied from
+`init.sql` — so existing databases need
+`swiftcookdb/upgrade/ticket-11-isstaple.sql`. `IngredientController` rejects
+blank/duplicate (case-insensitive) names with 400/409 and blocks deletes
+used by recipes/cupboard/shopping list; `IngredientTypeController` blocks
+deletes of types in use or that are a category's fallback. New `/ingredients`
+page (`IngredientManager.vue`, sidebar link) with Ingredients/Types tabs,
+search + category/type filters, inline edit, staple checkbox, API 409
+messages shown inline (`getErrorMessage` now prefers the API message).
+`dotnet test` 22/22, frontend lint/build/test 54/54.
 
 **Order:** Must land before Ticket 13.
 

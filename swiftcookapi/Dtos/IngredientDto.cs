@@ -5,4 +5,5 @@ public class IngredientDto
     public string PluralName { get; set; } = string.Empty;
     public int? TypeId { get; set; }
     public string? TypeName { get; set; }
+    public bool IsStaple { get; set; }
 }

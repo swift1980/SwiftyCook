@@ -6,6 +6,7 @@ namespace SwiftCookDb.Models
         public string Name { get; set; } = string.Empty;
         public string PluralName { get; set; } = string.Empty;
         public int? TypeId {  get; set; }
+        public bool IsStaple { get; set; }
         public IngredientType? Type { get; set; }
 
         public ICollection<RecipeIngredient> RecipeIngredients { get; set; } = new List<RecipeIngredient>();

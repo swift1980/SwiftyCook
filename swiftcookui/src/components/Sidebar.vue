@@ -14,6 +14,7 @@
         <router-link to="/cocktails" active-class="active">Cocktails</router-link>
         <router-link to="/shopping-list" active-class="active">Shopping List</router-link>
         <router-link to="/cupboard" active-class="active">Cupboard</router-link>
+        <router-link to="/ingredients" active-class="active">Ingredients</router-link>
         <router-link to="/recipes/new" active-class="active">Add Recipe</router-link>
       </nav>
     </aside>

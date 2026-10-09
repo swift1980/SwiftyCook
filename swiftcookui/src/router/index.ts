@@ -4,6 +4,7 @@ import RecipeForm from '@/views/RecipeForm.vue';
 import ShoppingList from '@/views/ShoppingList.vue';
 import Cocktails from '@/views/Cocktails.vue';
 import Cupboard from '@/views/Cupboard.vue';
+import IngredientManager from '@/views/IngredientManager.vue';
 
 const routes = [
   { path: '/', redirect: "/recipes" },
@@ -11,7 +12,8 @@ const routes = [
   { path: '/recipes/new', name: 'RecipeForm', component: RecipeForm },
   { path: '/shopping-list', name: 'ShoppingList', component: ShoppingList },
   { path: '/cocktails', name: 'Cocktails', component: Cocktails },
-  { path: '/cupboard', name: 'Cupboard', component: Cupboard }
+  { path: '/cupboard', name: 'Cupboard', component: Cupboard },
+  { path: '/ingredients', name: 'Ingredients', component: IngredientManager }
 ];
 
 const router = createRouter({
