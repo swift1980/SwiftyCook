@@ -963,7 +963,7 @@ model, DTO or controller.
 
 ---
 
-## Ticket 19: "Add to meal planner" on the recipe card — Open
+## Ticket 19: "Add to meal planner" on the recipe card — Implemented
 
 **Scope:**
 - Button on recipe/cocktail cards opening the shared add dialog: date
@@ -972,6 +972,8 @@ model, DTO or controller.
 - Confirmation message after adding (e.g. "Added to Tuesday dinner").
 
 **Order:** Depends on Tickets 17 and 18.
+
+**Resolution:** `RecipeCard.vue` (used for recipes and cocktails via `CardGrid`) has an "Add to meal planner" button that opens `MealPlanAddDialog` in a new recipe-fixed mode: date (default today), meal type (guessed by `utils/mealType.ts` from the categories, Dinner by default; cocktails fixed to Cocktail, others never offered Cocktail) and servings (default recipe yield). On success the card shows "Added to Tuesday lunch (2026-10-06)"; API errors stay in the dialog. Planner cell mode is unchanged. Tests in `RecipeCardPlanner.spec.ts`.
 
 ---
 

@@ -2,12 +2,26 @@
   <div class="overlay" @click.self="$emit('close')">
     <div class="dialog" role="dialog" aria-label="Add to meal plan">
       <button class="close" type="button" @click="$emit('close')">✕</button>
-      <h3>Add to {{ mealType }}</h3>
-      <p class="when">{{ date }}</p>
+      <h3 v-if="recipe">Add {{ recipe.name }} to meal plan</h3>
+      <h3 v-else>Add to {{ mealType }}</h3>
+      <p v-if="!recipe" class="when">{{ date }}</p>
 
-      <input v-model="query" class="search" type="search" placeholder="Search recipes by name" />
+      <template v-if="recipe">
+        <label class="field">
+          Date
+          <input v-model="chosenDate" type="date" aria-label="Date" />
+        </label>
+        <label class="field">
+          Meal
+          <select v-model="chosenMealType" aria-label="Meal type" :disabled="isCocktailRecipe">
+            <option v-for="m in mealOptions" :key="m" :value="m">{{ m }}</option>
+          </select>
+        </label>
+      </template>
 
-      <ul class="results">
+      <input v-if="!recipe" v-model="query" class="search" type="search" placeholder="Search recipes by name" />
+
+      <ul v-if="!recipe" class="results">
         <li v-for="r in matches" :key="r.id">
           <button
             type="button"
@@ -16,7 +30,7 @@
           >{{ r.name }}</button>
         </li>
       </ul>
-      <div v-if="!recipeStore.loading && !cocktailStore.loading && !matches.length" class="empty">No matching recipes.</div>
+      <div v-if="!recipe && !recipeStore.loading && !cocktailStore.loading && !matches.length" class="empty">No matching recipes.</div>
 
       <label class="servings">
         Servings
@@ -25,7 +39,7 @@
 
       <div v-if="error" class="error">{{ error }}</div>
 
-      <button class="add" type="button" :disabled="!selectedId || !servings || servings < 1" @click="onAdd">
+      <button class="add" type="button" :disabled="!canAdd" @click="onAdd">
         Add
       </button>
     </div>
@@ -37,26 +51,37 @@ import { computed, onMounted, ref } from 'vue'
 import { useRecipeStore } from '@/stores/recipeStore'
 import { useCocktailStore } from '@/stores/cocktailStore'
 import { useMealPlanStore } from '@/stores/mealPlanStore'
-import { COCKTAIL_CATEGORY_ID, type MealType } from '@/interfaces/mealPlan'
+import { COCKTAIL_CATEGORY_ID, MEAL_TYPES, type MealType } from '@/interfaces/mealPlan'
+import { guessMealType } from '@/utils/mealType'
+import { todayIso } from '@/utils/dates'
 import type { RecipeDto } from '@/interfaces/recipe'
 import { getErrorMessage } from '@/utils/errors'
 
-const props = defineProps<{ date: string; mealType: MealType }>()
-const emit = defineEmits<{ close: []; added: [] }>()
+// Planner cell mode: date + mealType are fixed and the user searches for a recipe.
+// Recipe card mode: the recipe prop is fixed and the user picks the date and meal type.
+const props = defineProps<{ date?: string; mealType?: MealType; recipe?: RecipeDto }>()
+const emit = defineEmits<{ close: []; added: [date: string, mealType: MealType] }>()
 
 const recipeStore = useRecipeStore()
 const cocktailStore = useCocktailStore()
 const mealPlanStore = useMealPlanStore()
 
 const query = ref('')
-const selectedId = ref<number | null>(null)
-const servings = ref(1)
+const selectedId = ref<number | null>(props.recipe?.id ?? null)
+const servings = ref(Math.max(props.recipe?.yield || 1, 1))
+const chosenDate = ref(props.date ?? todayIso())
+const chosenMealType = ref<MealType>(props.mealType ?? (props.recipe ? guessMealType(props.recipe) : 'Dinner'))
+const isCocktailRecipe = props.recipe ? guessMealType(props.recipe) === 'Cocktail' : false
+// Cocktails only go in the Cocktail row; everything else excludes it.
+const mealOptions = isCocktailRecipe ? (['Cocktail'] as MealType[]) : MEAL_TYPES.filter(m => m !== 'Cocktail')
+const canAdd = computed(() => !!selectedId.value && !!chosenDate.value && servings.value >= 1)
 const error = ref<string | null>(null)
 
 // The recipe list excludes cocktails, which have their own endpoint.
-const isCocktailRow = props.mealType === 'Cocktail'
+const isCocktailRow = chosenMealType.value === 'Cocktail'
 
 onMounted(() => {
+  if (props.recipe) return
   if (isCocktailRow) {
     if (!cocktailStore.cocktails.length) cocktailStore.fetchCocktailAll()
   } else if (!recipeStore.recipes.length) {
@@ -83,12 +108,12 @@ async function onAdd() {
   error.value = null
   try {
     await mealPlanStore.addEntry({
-      date: props.date,
-      mealType: props.mealType,
+      date: chosenDate.value,
+      mealType: chosenMealType.value,
       recipeId: selectedId.value,
       servings: servings.value,
     })
-    emit('added')
+    emit('added', chosenDate.value, chosenMealType.value)
     emit('close')
   } catch (err: unknown) {
     error.value = getErrorMessage(err, 'Failed to add to the meal plan')
@@ -137,6 +162,8 @@ async function onAdd() {
   cursor: pointer;
 }
 .results button:hover, .results button.selected { background: #e5e7eb; }
+.field { display: flex; gap: 0.5rem; align-items: center; }
+.field input, .field select { padding: 0.5rem; border: 1px solid #ccc; border-radius: 0.5rem; }
 .servings { display: flex; gap: 0.5rem; align-items: center; }
 .servings input { width: 5rem; }
 .empty { color: #666; }

@@ -6,6 +6,11 @@
       <h2>{{ recipe.name }}</h2>
       <p>{{ recipe.description }}</p>
       
+      <div class="plan">
+        <button type="button" class="plan-btn" @click="planning = true">Add to meal planner</button>
+        <span v-if="planned" class="planned" role="status">{{ planned }}</span>
+      </div>
+
       <h3>Ingredients</h3>
       <ul>
         <li v-for="ing in recipe.ingredients" :key="ing.ingredientId">
@@ -27,11 +32,16 @@
         <template v-if="recipe.sourceAuthor"> by {{ recipe.sourceAuthor }}</template>
       </p>
     </div>
+    <MealPlanAddDialog v-if="planning" :recipe="recipe" @close="planning = false" @added="onAdded" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, type PropType } from 'vue'
+import { computed, ref, type PropType } from 'vue'
+import MealPlanAddDialog from '@/components/MealPlanAddDialog.vue'
+import type { MealType } from '@/interfaces/mealPlan'
+import { addedMessage } from '@/utils/mealType'
+import { parseIsoDate } from '@/utils/dates'
 import type { RecipeDto } from '@/interfaces/recipe'
 
 const props = defineProps({
@@ -40,6 +50,14 @@ const props = defineProps({
     required: true
   }
 })
+
+const planning = ref(false)
+const planned = ref('')
+
+function onAdded(date: string, mealType: MealType) {
+  const weekday = parseIsoDate(date).toLocaleDateString('en-GB', { weekday: 'long' })
+  planned.value = addedMessage(date, mealType, weekday)
+}
 
 // Only http(s) links are rendered as anchors.
 const safeSourceUrl = computed(() => {
@@ -76,6 +94,8 @@ const safeSourceUrl = computed(() => {
   font-size: 1.2rem;
   cursor: pointer;
 }
+.plan { display: flex; align-items: center; gap: 0.75rem; margin: 0.5rem 0; }
+.planned { color: #15803d; }
 .source {
   margin-top: 1rem;
   font-size: 0.9rem;
