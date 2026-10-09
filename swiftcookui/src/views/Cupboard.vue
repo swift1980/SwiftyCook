@@ -25,10 +25,10 @@
     <div v-if="cupboardStore.error" class="error">{{ cupboardStore.error }}</div>
 
     <ul v-if="cupboardStore.items.length" class="cupboard-list">
-      <li v-for="item in cupboardStore.items" :key="item.ingredientId" class="cupboard-item">
+      <li v-for="item in cupboardStore.items" :key="`${item.ingredientId}-${item.unitId}`" class="cupboard-item">
         <span class="name">{{ item.ingredientName }}</span>
         <span v-if="item.amount != null" class="amount">{{ item.amount }} {{ item.unitName }}</span>
-        <button type="button" class="remove-btn" @click="onRemove(item.ingredientId)">✕</button>
+        <button type="button" class="remove-btn" @click="onRemove(item.ingredientId, item.unitId)">✕</button>
       </li>
     </ul>
     <div v-else-if="!cupboardStore.loading" class="empty-state">Your cupboard is empty.</div>
@@ -77,8 +77,8 @@
     form.amount = null
   }
 
-  async function onRemove(ingredientId: number) {
-    await cupboardStore.removeItem(ingredientId)
+  async function onRemove(ingredientId: number, unitId: number) {
+    await cupboardStore.removeItem(ingredientId, unitId)
   }
 </script>
 

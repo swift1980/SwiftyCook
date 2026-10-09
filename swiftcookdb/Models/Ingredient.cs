@@ -11,6 +11,6 @@ namespace SwiftCookDb.Models
 
         public ICollection<RecipeIngredient> RecipeIngredients { get; set; } = new List<RecipeIngredient>();
         public ICollection<ShoppingList> ShoppingLists { get; set; } = new List<ShoppingList>();
-        public Cupboard? Cupboard { get; set; }
+        public ICollection<Cupboard> Cupboards { get; set; } = new List<Cupboard>();
     }
 }

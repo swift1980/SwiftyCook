@@ -22,7 +22,7 @@ describe('cupboardStore', () => {
 
   it('fetchAll populates items on success', async () => {
     const items: CupboardDto[] = [
-      { ingredientId: 1, ingredientName: 'Milk', amount: 1, unitName: 'litre' },
+      { ingredientId: 1, ingredientName: 'Milk', unitId: 1, amount: 1, unitName: 'litre' },
     ]
     mockedApi.get.mockResolvedValueOnce({ data: items })
 
@@ -47,8 +47,9 @@ describe('cupboardStore', () => {
   })
 
   it('addItem appends a new item', async () => {
-    const created: CupboardDto = { ingredientId: 2, ingredientName: 'Eggs', amount: 6, unitName: 'each' }
+    const created: CupboardDto = { ingredientId: 2, ingredientName: 'Eggs', unitId: 1, amount: 6, unitName: 'each' }
     mockedApi.post.mockResolvedValueOnce({ data: created })
+    mockedApi.get.mockResolvedValueOnce({ data: [created] })
 
     const store = useCupboardStore()
     await store.addItem({ ingredientId: 2, unitId: 1, amount: 6 })
@@ -57,12 +58,13 @@ describe('cupboardStore', () => {
     expect(store.items).toEqual([created])
   })
 
-  it('addItem replaces an existing entry for the same ingredient', async () => {
+  it('addItem reloads the list because the server may merge rows', async () => {
     const store = useCupboardStore()
-    store.items = [{ ingredientId: 2, ingredientName: 'Eggs', amount: 6, unitName: 'each' }]
+    store.items = [{ ingredientId: 2, ingredientName: 'Eggs', unitId: 1, amount: 6, unitName: 'each' }]
 
-    const updated: CupboardDto = { ingredientId: 2, ingredientName: 'Eggs', amount: 12, unitName: 'each' }
+    const updated: CupboardDto = { ingredientId: 2, ingredientName: 'Eggs', unitId: 1, amount: 12, unitName: 'each' }
     mockedApi.post.mockResolvedValueOnce({ data: updated })
+    mockedApi.get.mockResolvedValueOnce({ data: [updated] })
 
     await store.addItem({ ingredientId: 2, unitId: 1, amount: 12 })
 
@@ -72,24 +74,24 @@ describe('cupboardStore', () => {
   it('removeItem removes the matching item', async () => {
     const store = useCupboardStore()
     store.items = [
-      { ingredientId: 1, ingredientName: 'Milk', amount: 1, unitName: 'litre' },
-      { ingredientId: 2, ingredientName: 'Eggs', amount: 6, unitName: 'each' },
+      { ingredientId: 1, ingredientName: 'Milk', unitId: 1, amount: 1, unitName: 'litre' },
+      { ingredientId: 2, ingredientName: 'Eggs', unitId: 1, amount: 6, unitName: 'each' },
     ]
     mockedApi.delete.mockResolvedValueOnce({})
 
-    await store.removeItem(1)
+    await store.removeItem(1, 1)
 
-    expect(mockedApi.delete).toHaveBeenCalledWith('/cupboard/1')
-    expect(store.items).toEqual([{ ingredientId: 2, ingredientName: 'Eggs', amount: 6, unitName: 'each' }])
+    expect(mockedApi.delete).toHaveBeenCalledWith('/cupboard/1/1')
+    expect(store.items).toEqual([{ ingredientId: 2, ingredientName: 'Eggs', unitId: 1, amount: 6, unitName: 'each' }])
   })
 
   it('removeItem sets error message on failure and keeps items unchanged', async () => {
     const store = useCupboardStore()
-    const items: CupboardDto[] = [{ ingredientId: 1, ingredientName: 'Milk', amount: 1, unitName: 'litre' }]
+    const items: CupboardDto[] = [{ ingredientId: 1, ingredientName: 'Milk', unitId: 1, amount: 1, unitName: 'litre' }]
     store.items = [...items]
     mockedApi.delete.mockRejectedValueOnce(new Error('boom'))
 
-    await expect(store.removeItem(1)).rejects.toThrow('boom')
+    await expect(store.removeItem(1, 1)).rejects.toThrow('boom')
 
     expect(store.items).toEqual(items)
     expect(store.error).toBe('boom')

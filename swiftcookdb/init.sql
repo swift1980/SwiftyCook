@@ -167,9 +167,10 @@ CREATE TABLE ShoppingList (
 );
 -- CUPBOARD
 CREATE TABLE Cupboard (
-    IngredientId int NOT NULL PRIMARY KEY,
+    IngredientId int NOT NULL,
 	UnitId int NOT NULL,
     Amount DECIMAL(12,4),
+	PRIMARY KEY (IngredientId, UnitId),
 	CONSTRAINT FK_Cupboard_IngredientId FOREIGN KEY (IngredientId) REFERENCES Ingredient(Id) ON DELETE CASCADE,
     CONSTRAINT FK_Cupboard_UnitId FOREIGN KEY (UnitId) REFERENCES Unit(Id) ON DELETE CASCADE
 );

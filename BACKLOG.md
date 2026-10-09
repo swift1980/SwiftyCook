@@ -1008,13 +1008,22 @@ a recipe line with no unit as `sgl` (Count). No frontend changes were needed.
 
 ---
 
-## Ticket 22: Cupboard supports multiple units per ingredient — Open
+## Ticket 22: Cupboard supports multiple units per ingredient — Implemented
 
 **Scope:**
 - Allow one Cupboard row per ingredient and unit. Additions in the same
   dimension are converted and merged into the existing row (shown in a
   sensible display unit); incomparable units stay as separate rows. Never
   guess.
+
+**Resolution:** Cupboard key is `(IngredientId, UnitId)`; `Ingredient.Cupboards`
+is now a collection. `POST /api/cupboard` sums same-unit amounts, converts and
+merges same-dimension units (shown in the larger of the two units), and keeps
+incomparable units or unknown amounts as separate rows (unknown + known in the
+same unit stays unknown). `DELETE /api/cupboard/{ingredientId}/{unitId}`
+replaces the old per-ingredient delete. Existing databases:
+`upgrade/ticket-22-cupboard-units.sql` (rollback `ticket-22-down.sql` is lossy:
+keeps one unit per ingredient). Both verified on MariaDB.
 
 **Order:** Depends on Ticket 21.
 

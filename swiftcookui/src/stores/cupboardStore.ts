@@ -29,13 +29,9 @@ export const useCupboardStore = defineStore('cupboard', {
       this.error = null
       try {
         const res = await api.post<CupboardDto>('/cupboard', dto);
-        // Replace any existing entry for the same ingredient, otherwise append
-        const index = this.items.findIndex(i => i.ingredientId === res.data.ingredientId);
-        if (index >= 0) {
-          this.items[index] = res.data;
-        } else {
-          this.items.push(res.data);
-        }
+        // The server may have merged or replaced rows, so reload the list
+        const rows = await api.get<CupboardDto[]>('/cupboard');
+        this.items = rows.data;
         return res.data;
       } catch (err: unknown) {
         this.error = getErrorMessage(err, 'Failed to add item to cupboard');
@@ -43,11 +39,11 @@ export const useCupboardStore = defineStore('cupboard', {
       }
     },
 
-    async removeItem(ingredientId: number) {
+    async removeItem(ingredientId: number, unitId: number) {
       this.error = null
       try {
-        await api.delete(`/cupboard/${ingredientId}`);
-        this.items = this.items.filter(i => i.ingredientId !== ingredientId);
+        await api.delete(`/cupboard/${ingredientId}/${unitId}`);
+        this.items = this.items.filter(i => !(i.ingredientId === ingredientId && i.unitId === unitId));
       } catch (err: unknown) {
         this.error = getErrorMessage(err, 'Failed to remove item from cupboard');
         throw err;
