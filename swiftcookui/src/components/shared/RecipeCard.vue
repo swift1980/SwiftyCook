@@ -25,6 +25,8 @@
         </li>
       </ol>
 
+      <CookLogPanel :recipe-id="recipe.id" :default-servings="recipe.yield" />
+
       <p v-if="recipe.sourceUrl || recipe.sourceTitle || recipe.sourceAuthor" class="source">
         Source:
         <a v-if="safeSourceUrl" :href="safeSourceUrl" target="_blank" rel="noopener noreferrer">{{ recipe.sourceTitle || recipe.sourceUrl }}</a>
@@ -39,6 +41,7 @@
 <script setup lang="ts">
 import { computed, ref, type PropType } from 'vue'
 import MealPlanAddDialog from '@/components/MealPlanAddDialog.vue'
+import CookLogPanel from '@/components/CookLogPanel.vue'
 import type { MealType } from '@/interfaces/mealPlan'
 import { addedMessage } from '@/utils/mealType'
 import { parseIsoDate } from '@/utils/dates'

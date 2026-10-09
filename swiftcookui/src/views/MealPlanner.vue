@@ -39,6 +39,21 @@
               :aria-label="`Servings for ${e.recipeName}`"
               @change="onServings(e, $event)"
             />
+            <button
+              v-if="e.cookLogId"
+              type="button"
+              class="made"
+              :aria-label="`Undo made for ${e.recipeName}`"
+              @click="toggleMade(e)"
+            >✓ Made</button>
+            <button
+              v-else
+              type="button"
+              class="made"
+              :disabled="d > today"
+              :aria-label="`Mark ${e.recipeName} as made`"
+              @click="toggleMade(e)"
+            >Mark made</button>
             <button type="button" class="remove" :aria-label="`Remove ${e.recipeName}`" @click="store.removeEntry(e.id)">✕</button>
           </div>
           <button type="button" class="add" :aria-label="`Add to ${meal} on ${d}`" @click="openDialog(d, meal)">+</button>
@@ -83,6 +98,15 @@ function openDialog(date: string, mealType: MealType) {
   dialog.value = { date, mealType }
 }
 
+async function toggleMade(entry: MealPlanEntryDto) {
+  try {
+    if (entry.cookLogId) await store.undoMade(entry)
+    else await store.markMade(entry)
+  } catch {
+    // The store exposes the error message.
+  }
+}
+
 async function onServings(entry: MealPlanEntryDto, event: Event) {
   const input = event.target as HTMLInputElement
   const value = Math.floor(Number(input.value))
@@ -123,6 +147,8 @@ onBeforeUnmount(() => query?.removeEventListener('change', onQueryChange))
 .entry { display: flex; align-items: center; gap: 0.25rem; background: #f3f4f6; border-radius: 0.4rem; padding: 0.2rem 0.3rem; font-size: 0.85rem; }
 .entry-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .entry-servings { width: 3rem; }
+.made { font-size: 0.75rem; border: 1px solid #bbb; border-radius: 0.4rem; background: #fff; cursor: pointer; }
+.made:disabled { opacity: 0.5; cursor: not-allowed; }
 .remove { background: none; border: none; cursor: pointer; color: #a00; }
 .add { align-self: flex-start; background: none; border: 1px dashed #bbb; border-radius: 0.4rem; cursor: pointer; padding: 0 0.5rem; }
 .error { color: #a00; margin-bottom: 0.5rem; }

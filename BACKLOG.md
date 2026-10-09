@@ -977,7 +977,7 @@ model, DTO or controller.
 
 ---
 
-## Ticket 20: Cook log — Open
+## Ticket 20: Cook log — Implemented
 
 **Scope:**
 - `CookLog`: `Id`, `RecipeId`, `CookedOn`, `Servings`, nullable `Notes`.
@@ -990,6 +990,8 @@ model, DTO or controller.
   defined.
 
 **Order:** Later than the planner; depends on Tickets 17 and 18.
+
+**Resolution:** Implemented. New `CookLog` table (`upgrade/ticket-20-cook-log.sql`, rollback `ticket-20-down.sql`, both verified re-runnable on MariaDB 11.4). API: `api/cooklog` CRUD (future dates rejected), `POST/DELETE api/mealplan/{id}/made` (409 if already/not made). UI: "Mark made"/"✓ Made" on planner entries (disabled for future dates) and a Cook log panel on the recipe card (last made, log form, edit, two-step delete). Notes: the legacy unused `Cooked` table and `Recipe.CookedHistory` are untouched; no Cupboard deduction; deleting a planner entry keeps its log; the recipe of a made entry cannot be changed.
 
 ---
 

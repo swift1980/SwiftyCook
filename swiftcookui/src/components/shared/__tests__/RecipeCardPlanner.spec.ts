@@ -40,18 +40,18 @@ describe('RecipeCard add to meal planner', () => {
     const wrapper = mount(RecipeCard, { props: { recipe: make({}) }, attachTo: document.body })
     await wrapper.find('.plan-btn').trigger('click')
 
-    expect((wrapper.find('input[type=date]').element as HTMLInputElement).value).toBe(todayIso())
+    expect((wrapper.find('.dialog input[type=date]').element as HTMLInputElement).value).toBe(todayIso())
     expect((wrapper.find('select[aria-label="Meal type"]').element as HTMLSelectElement).value).toBe('Breakfast')
-    expect((wrapper.find('.servings input').element as HTMLInputElement).value).toBe('4')
+    expect((wrapper.find('.dialog .servings input').element as HTMLInputElement).value).toBe('4')
     expect(wrapper.find('.search').exists()).toBe(false)
   })
 
   it('posts the chosen date, meal and servings and confirms', async () => {
     const wrapper = mount(RecipeCard, { props: { recipe: make({}) }, attachTo: document.body })
     await wrapper.find('.plan-btn').trigger('click')
-    await wrapper.find('input[type=date]').setValue('2026-10-06')
+    await wrapper.find('.dialog input[type=date]').setValue('2026-10-06')
     await wrapper.find('select[aria-label="Meal type"]').setValue('Lunch')
-    await wrapper.find('.servings input').setValue(2)
+    await wrapper.find('.dialog .servings input').setValue(2)
     await wrapper.find('button.add').trigger('click')
     await flushPromises()
 

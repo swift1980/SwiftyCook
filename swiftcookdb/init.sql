@@ -178,6 +178,16 @@ CREATE TABLE Cupboard (
 	CONSTRAINT FK_Cupboard_IngredientId FOREIGN KEY (IngredientId) REFERENCES Ingredient(Id) ON DELETE CASCADE,
     CONSTRAINT FK_Cupboard_UnitId FOREIGN KEY (UnitId) REFERENCES Unit(Id) ON DELETE CASCADE
 );
+-- COOK LOG (Ticket 20): single source of truth for "when was this made"
+CREATE TABLE CookLog (
+    Id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    RecipeId int NOT NULL,
+    CookedOn DATE NOT NULL,
+    Servings int NOT NULL,
+    Notes VARCHAR(500) NULL,
+    INDEX IX_CookLog_RecipeId_CookedOn (RecipeId, CookedOn),
+    CONSTRAINT FK_CookLog_RecipeId FOREIGN KEY (RecipeId) REFERENCES Recipe(Id) ON DELETE CASCADE
+);
 -- MEAL PLAN (one row per planned recipe; weeks are derived from Date)
 CREATE TABLE MealPlanEntry (
     Id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -189,5 +199,6 @@ CREATE TABLE MealPlanEntry (
     CookLogId int NULL,
     INDEX IX_MealPlanEntry_Date (Date),
     CONSTRAINT CK_MealPlanEntry_MealType CHECK (MealType IN ('Breakfast','Lunch','Dinner','Snack','Cocktail')),
-    CONSTRAINT FK_MealPlanEntry_RecipeId FOREIGN KEY (RecipeId) REFERENCES Recipe(Id) ON DELETE RESTRICT
+    CONSTRAINT FK_MealPlanEntry_RecipeId FOREIGN KEY (RecipeId) REFERENCES Recipe(Id) ON DELETE RESTRICT,
+    CONSTRAINT FK_MealPlanEntry_CookLogId FOREIGN KEY (CookLogId) REFERENCES CookLog(Id) ON DELETE SET NULL
 );

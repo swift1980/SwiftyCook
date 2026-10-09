@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { setActivePinia, createPinia } from 'pinia'
 import { mount, flushPromises } from '@vue/test-utils'
 import CardGrid from '@/components/shared/CardGrid.vue'
 import api from '@/services/api'
@@ -11,6 +12,8 @@ vi.mock('@/services/api', () => ({
 }))
 
 const mockedApi = vi.mocked(api, true)
+
+beforeEach(() => setActivePinia(createPinia()))
 
 const recipe: RecipeDto = {
   id: 3,

@@ -1,7 +1,14 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { setActivePinia, createPinia } from 'pinia'
 import { mount } from '@vue/test-utils'
 import RecipeCard from '@/components/shared/RecipeCard.vue'
 import type { RecipeDto } from '@/interfaces/recipe'
+
+vi.mock('@/services/api', () => ({
+  default: { get: vi.fn().mockResolvedValue({ data: [] }), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+}))
+
+beforeEach(() => setActivePinia(createPinia()))
 
 const recipe: RecipeDto = {
   id: 1,

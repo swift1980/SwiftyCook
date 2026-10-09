@@ -12,7 +12,8 @@ namespace SwiftCookDb.Models
         public int Servings { get; set; }
         public int SortOrder { get; set; }
 
-        // Reserved for the cook log (Ticket 20); the foreign key is added there.
+        // Set once the planned meal has been marked as made (Ticket 20).
         public int? CookLogId { get; set; }
+        public CookLog? CookLog { get; set; }
     }
 }

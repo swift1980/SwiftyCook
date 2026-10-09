@@ -114,4 +114,30 @@ describe('MealPlanner.vue', () => {
 
     expect(wrapper.find('.dialog .error').exists()).toBe(true)
   })
+
+  it('marks an entry made and undoes it', async () => {
+    const wrapper = setup()
+    await flushPromises()
+    mockedApi.post.mockResolvedValue({ data: { ...entry, cookLogId: 9 } })
+    mockedApi.delete.mockResolvedValue({ data: {} })
+
+    await wrapper.find('.entry .made').trigger('click')
+    await flushPromises()
+    expect(mockedApi.post).toHaveBeenCalledWith('/mealplan/7/made')
+    expect(wrapper.find('.entry .made').text()).toContain('Made')
+
+    await wrapper.find('.entry .made').trigger('click')
+    await flushPromises()
+    expect(mockedApi.delete).toHaveBeenCalledWith('/mealplan/7/made')
+    expect(wrapper.find('.entry .made').text()).toContain('Mark made')
+  })
+
+  it('disables marking made for future dates', async () => {
+    const wrapper = setup([{ ...entry, date: '2999-10-06' }])
+    const store = useMealPlanStore()
+    store.weekStart = '2999-10-05'
+    await store.fetchWeek()
+    await flushPromises()
+    expect(wrapper.find('.entry .made').attributes('disabled')).toBeDefined()
+  })
 })

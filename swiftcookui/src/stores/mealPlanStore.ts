@@ -89,6 +89,28 @@ export const useMealPlanStore = defineStore('mealPlan', {
       }
     },
 
+    async markMade(entry: MealPlanEntryDto) {
+      this.error = null
+      try {
+        const res = await api.post<MealPlanEntryDto>(`/mealplan/${entry.id}/made`);
+        entry.cookLogId = res.data.cookLogId
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to mark as made');
+        throw err;
+      }
+    },
+
+    async undoMade(entry: MealPlanEntryDto) {
+      this.error = null
+      try {
+        await api.delete(`/mealplan/${entry.id}/made`);
+        entry.cookLogId = null
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to undo');
+        throw err;
+      }
+    },
+
     async removeEntry(id: number) {
       this.error = null
       try {

@@ -26,6 +26,7 @@ namespace SwiftCookDb
         public DbSet<ShoppingList> ShoppingLists { get; set; }
         public DbSet<Cupboard> Cupboards { get; set; }
         public DbSet<MealPlanEntry> MealPlanEntries { get; set; }
+        public DbSet<CookLog> CookLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -55,6 +56,19 @@ namespace SwiftCookDb
                 .WithMany()
                 .HasForeignKey(e => e.RecipeId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<CookLog>().ToTable("CookLog");
+            modelBuilder.Entity<CookLog>().Property(l => l.Notes).HasMaxLength(500);
+            modelBuilder.Entity<CookLog>()
+                .HasOne(l => l.Recipe)
+                .WithMany()
+                .HasForeignKey(l => l.RecipeId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<MealPlanEntry>()
+                .HasOne(e => e.CookLog)
+                .WithMany()
+                .HasForeignKey(e => e.CookLogId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<RecipeCategory>().HasKey(rc => new { rc.RecipeId, rc.CategoryId });
             modelBuilder.Entity<RecipeTag>().HasKey(rt => new { rt.RecipeId, rt.TagId });

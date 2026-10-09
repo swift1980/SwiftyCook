@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using SwiftCookDb.Models;
 
 public class MappingProfile : Profile
@@ -53,6 +53,8 @@ public class MappingProfile : Profile
         CreateMap<Cupboard, CupboardDto>()
             .ForMember(dest => dest.IngredientName, opt => opt.MapFrom(src => src.Ingredient.Name))
             .ForMember(dest => dest.UnitName, opt => opt.MapFrom(src => src.Unit.Name));
+
+        CreateMap<CookLog, CookLogDto>();
 
         // MealPlanEntry
         CreateMap<MealPlanEntry, MealPlanEntryDto>()

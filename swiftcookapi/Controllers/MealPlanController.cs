@@ -80,6 +80,10 @@ namespace swiftcookapi.Controllers
             var recipe = await _context.Recipes.FindAsync(dto.RecipeId);
             if (recipe == null) return BadRequest(new { message = "Unknown recipe." });
 
+            // The cook log row belongs to the recipe that was made.
+            if (entry.CookLogId != null && dto.RecipeId != entry.RecipeId)
+                return BadRequest(new { message = "Undo 'made' before changing the recipe of this entry." });
+
             var mealType = dto.MealType!.Value;
             var mismatch = await MealTypeMismatchAsync(recipe, mealType);
             if (mismatch != null) return BadRequest(new { message = mismatch });
@@ -105,6 +109,37 @@ namespace swiftcookapi.Controllers
             return NoContent();
         }
 
+        /// <summary>Creates a cook log row for the entry (date = planned date) and links it.</summary>
+        [HttpPost("{id}/made")]
+        public async Task<ActionResult<MealPlanEntryDto>> MarkMade(int id)
+        {
+            var entry = await _context.MealPlanEntries.Include(e => e.Recipe).FirstOrDefaultAsync(e => e.Id == id);
+            if (entry == null) return NotFound();
+            if (entry.CookLogId != null) return Conflict(new { message = "This entry is already marked as made." });
+
+            var future = CookLogController.FutureError(entry.Date);
+            if (future != null) return BadRequest(new { message = future });
+
+            // One SaveChanges inserts the log and links it atomically.
+            entry.CookLog = new CookLog { RecipeId = entry.RecipeId, CookedOn = entry.Date, Servings = entry.Servings };
+            await _context.SaveChangesAsync();
+            return _mapper.Map<MealPlanEntryDto>(entry);
+        }
+
+        /// <summary>Removes the link and the cook log row.</summary>
+        [HttpDelete("{id}/made")]
+        public async Task<ActionResult<MealPlanEntryDto>> UndoMade(int id)
+        {
+            var entry = await _context.MealPlanEntries.Include(e => e.Recipe).Include(e => e.CookLog).FirstOrDefaultAsync(e => e.Id == id);
+            if (entry == null) return NotFound();
+            if (entry.CookLog == null) return Conflict(new { message = "This entry is not marked as made." });
+
+            _context.CookLogs.Remove(entry.CookLog);
+            entry.CookLog = null;
+            entry.CookLogId = null;
+            await _context.SaveChangesAsync();
+            return _mapper.Map<MealPlanEntryDto>(entry);
+        }
         private async Task<int> NextSortOrderAsync(DateOnly date, MealType mealType)
         {
             var max = await _context.MealPlanEntries
