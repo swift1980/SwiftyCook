@@ -166,6 +166,7 @@ CREATE TABLE ShoppingList (
     IngredientId int NOT NULL,
 	UnitId int NOT NULL,
     Amount DECIMAL(12,4),
+    Source varchar(100) NULL,
     CONSTRAINT FK_ShoppingList_IngredientId FOREIGN KEY (IngredientId) REFERENCES Ingredient(Id) ON DELETE CASCADE,
     CONSTRAINT FK_ShoppingList_UnitId FOREIGN KEY (UnitId) REFERENCES Unit(Id) ON DELETE CASCADE
 );

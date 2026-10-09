@@ -7,6 +7,7 @@
       <button type="button" @click="store.thisWeek()">This week</button>
       <button type="button" @click="store.nextWeek()">Next →</button>
       <span class="range">{{ store.weekDays[0] }} – {{ store.weekDays[6] }}</span>
+      <button type="button" class="shop-btn" @click="openShopping">Add to shopping list</button>
     </div>
 
     <div v-if="narrow" class="day-tabs">
@@ -61,8 +62,38 @@
       </template>
     </div>
 
-    <MealPlanAddDialog
-      v-if="dialog"
+    <div v-if="shopping" class="overlay" @click.self="closeShopping">
+      <div class="dialog" role="dialog" aria-label="Add to shopping list">
+        <h3>Add to shopping list</h3>
+        <p v-if="shopping.loading">Calculating…</p>
+        <template v-else>
+          <p v-if="shopping.error" class="error" role="alert">{{ shopping.error }}</p>
+          <p v-else-if="shopping.done !== null" class="done" role="status">Added {{ shopping.done }} item{{ shopping.done === 1 ? '' : 's' }} to your shopping list.</p>
+          <p v-else-if="!shopping.lines.length">Nothing to add — the cupboard and shopping list already cover this week's remaining meals.</p>
+          <template v-else>
+            <p class="hint">Missing for the remaining meals this week (past days excluded):</p>
+            <ul class="shop-lines">
+              <li v-for="l in shopping.lines" :key="`${l.ingredientId}-${l.unitId}`">
+                {{ l.ingredientName }}<template v-if="l.amount != null"> – {{ l.amount }} {{ l.unitName }}</template>
+                <em v-if="l.unitMismatch"> (check cupboard: unit mismatch)</em>
+              </li>
+            </ul>
+          </template>
+        </template>
+        <div class="dialog-actions">
+          <button type="button" class="cancel" @click="closeShopping">{{ shopping.done !== null ? 'Close' : 'Cancel' }}</button>
+          <button
+            v-if="shopping.done === null"
+            type="button"
+            class="confirm"
+            :disabled="shopping.loading || shopping.adding || !shopping.lines.length"
+            @click="confirmShopping"
+          >Add</button>
+        </div>
+      </div>
+    </div>
+
+    <MealPlanAddDialog      v-if="dialog"
       :date="dialog.date"
       :meal-type="dialog.mealType"
       @close="dialog = null"
@@ -73,12 +104,56 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import MealPlanAddDialog from '@/components/MealPlanAddDialog.vue'
+import { getErrorMessage } from '@/utils/errors'
 import { useMealPlanStore } from '@/stores/mealPlanStore'
 import { MEAL_TYPES, type MealPlanEntryDto, type MealType } from '@/interfaces/mealPlan'
-import { parseIsoDate, todayIso } from '@/utils/dates'
+import { useShoppingListStore } from '@/stores/shoppingListStore'
+import type { ShoppingListGenerationLineDto } from '@/interfaces/shoppingList'
+import { addDays, parseIsoDate, todayIso } from '@/utils/dates'
 
 const store = useMealPlanStore()
 const today = todayIso()
+
+const shoppingStore = useShoppingListStore()
+const shopping = ref<{
+  loading: boolean
+  adding: boolean
+  lines: ShoppingListGenerationLineDto[]
+  error: string
+  done: number | null
+  from: string
+  to: string
+} | null>(null)
+
+async function openShopping() {
+  const from = store.weekStart
+  const to = addDays(from, 6)
+  shopping.value = { loading: true, adding: false, lines: [], error: '', done: null, from, to }
+  try {
+    const lines = await shoppingStore.previewFromMealPlan(from, to)
+    if (shopping.value) { shopping.value.lines = lines; shopping.value.loading = false }
+  } catch (err: unknown) {
+    if (shopping.value) { shopping.value.error = getErrorMessage(err, 'Failed to calculate the shopping list'); shopping.value.loading = false }
+  }
+}
+
+async function confirmShopping() {
+  const s = shopping.value
+  if (!s) return
+  s.adding = true
+  try {
+    const added = await shoppingStore.addFromMealPlan(s.from, s.to)
+    s.done = added.length
+  } catch (err: unknown) {
+    s.error = getErrorMessage(err, 'Failed to add to the shopping list')
+  } finally {
+    s.adding = false
+  }
+}
+
+function closeShopping() {
+  shopping.value = null
+}
 
 const dialog = ref<{ date: string; mealType: MealType } | null>(null)
 
@@ -152,4 +227,11 @@ onBeforeUnmount(() => query?.removeEventListener('change', onQueryChange))
 .remove { background: none; border: none; cursor: pointer; color: #a00; }
 .add { align-self: flex-start; background: none; border: 1px dashed #bbb; border-radius: 0.4rem; cursor: pointer; padding: 0 0.5rem; }
 .error { color: #a00; margin-bottom: 0.5rem; }
+.shop-btn { padding: 0.4rem 0.8rem; border: 1px solid #ccc; border-radius: 0.5rem; background: #fff; cursor: pointer; margin-left: auto; }
+.overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; z-index: 60; }
+.dialog { background: #fff; border-radius: 1rem; padding: 1.5rem; width: min(26rem, 92vw); max-height: 90vh; overflow-y: auto; }
+.shop-lines { padding-left: 1.25rem; }
+.hint { color: #666; }
+.done { color: #15803d; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
 </style>

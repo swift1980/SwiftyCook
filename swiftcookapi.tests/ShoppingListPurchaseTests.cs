@@ -29,7 +29,8 @@ namespace swiftcookapi.tests
         private static ShoppingListController Controller(SwiftCookDbContext ctx, CupboardStockService? stock = null)
         {
             var mapper = new MapperConfiguration(c => c.AddProfile<MappingProfile>()).CreateMapper();
-            return new ShoppingListController(ctx, mapper, stock ?? new CupboardStockService(ctx, new UnitConverter()));
+            return new ShoppingListController(ctx, mapper, stock ?? new CupboardStockService(ctx, new UnitConverter()),
+                new MealPlanShoppingService(ctx, new UnitConverter()));
         }
 
         private int AddItem(int ingredientId, int unitId, decimal? amount)

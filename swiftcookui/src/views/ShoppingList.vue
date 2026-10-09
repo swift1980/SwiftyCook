@@ -28,6 +28,7 @@
       <li v-for="item in shoppingListStore.items" :key="item.id" class="shopping-list-item">
         <span class="name">{{ item.ingredientName }}</span>
         <span v-if="item.amount != null" class="amount">{{ item.amount }} {{ item.unitName }}</span>
+        <span v-if="item.source" class="source">{{ item.source }}</span>
         <button type="button" class="remove-btn" @click="onRemove(item.id)">✕</button>
       </li>
     </ul>
@@ -156,6 +157,11 @@
 
   .amount {
     color: #666;
+  }
+
+  .source {
+    color: #92400e;
+    font-size: 0.8rem;
   }
 
   .remove-btn {

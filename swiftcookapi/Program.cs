@@ -46,6 +46,7 @@ builder.Services.AddScoped<swiftcookapi.Services.IRecipeIngredientSearchService,
     swiftcookapi.Services.RecipeIngredientSearchService>();
 builder.Services.AddSingleton<swiftcookapi.Services.UnitConverter>();
 builder.Services.AddScoped<swiftcookapi.Services.CupboardStockService>();
+builder.Services.AddScoped<swiftcookapi.Services.MealPlanShoppingService>();
 builder.Services.AddScoped<swiftcookapi.Services.RecipeImportService>();
 
 var app = builder.Build();

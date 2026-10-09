@@ -14,12 +14,14 @@ namespace swiftcookapi.Controllers
         private readonly SwiftCookDbContext _context;
         private readonly IMapper _mapper;
         private readonly CupboardStockService _stock;
+        private readonly MealPlanShoppingService _mealPlanShopping;
 
-        public ShoppingListController(SwiftCookDbContext context, IMapper mapper, CupboardStockService stock)
+        public ShoppingListController(SwiftCookDbContext context, IMapper mapper, CupboardStockService stock, MealPlanShoppingService mealPlanShopping)
         {
             _context = context;
             _mapper = mapper;
             _stock = stock;
+            _mealPlanShopping = mealPlanShopping;
         }
 
         [HttpGet]
@@ -85,6 +87,37 @@ namespace swiftcookapi.Controllers
 
             return NoContent();
         }
+
+        /// <summary>
+        /// Adds what is missing for the planned meals in the date range (see <see cref="MealPlanShoppingService"/>).
+        /// With dryRun it only previews. The shortage is always recalculated here, never taken from the client.
+        /// </summary>
+        [HttpPost("from-mealplan")]
+        public async Task<ActionResult<IEnumerable<ShoppingListGenerationLineDto>>> FromMealPlan(ShoppingListFromMealPlanDto dto)
+        {
+            var from = dto.From!.Value;
+            var to = dto.To!.Value;
+            if (to < from)
+                return BadRequest(new { message = "'to' cannot be before 'from'." });
+            if (to.DayNumber - from.DayNumber >= MealPlanController.MaxRangeDays)
+                return BadRequest(new { message = $"The range cannot exceed {MealPlanController.MaxRangeDays} days." });
+
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var lines = dto.DryRun
+                ? await _mealPlanShopping.CalculateAsync(from, to, today)
+                : await _mealPlanShopping.AddToShoppingListAsync(from, to, today);
+
+            return lines.Select(l => new ShoppingListGenerationLineDto
+            {
+                IngredientId = l.IngredientId,
+                IngredientName = l.IngredientName,
+                UnitId = l.UnitId,
+                UnitName = l.UnitName,
+                Amount = l.Amount,
+                UnitMismatch = l.UnitMismatch,
+            }).ToList();
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {

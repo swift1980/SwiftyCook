@@ -13,5 +13,8 @@ namespace SwiftCookDb.Models
         public Unit Unit { get; set; } = null!;
 
         public decimal? Amount { get; set; }
+
+        /// <summary>Marks generated lines (e.g. 'Meal plan'); null for rows the user added.</summary>
+        public string? Source { get; set; }
     }
 }

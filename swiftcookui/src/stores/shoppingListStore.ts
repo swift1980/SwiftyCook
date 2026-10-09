@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import api from '@/services/api';
-import type { ShoppingListDto, ShoppingListCreateDto } from '@/interfaces/shoppingList';
+import type { ShoppingListDto, ShoppingListCreateDto, ShoppingListGenerationLineDto } from '@/interfaces/shoppingList';
 import { getErrorMessage } from '@/utils/errors';
 
 export const useShoppingListStore = defineStore('shoppingList', {
@@ -54,6 +54,26 @@ export const useShoppingListStore = defineStore('shoppingList', {
         throw err;
       }
     },
+
+    /** What the planned meals in the range still need; nothing is saved. */
+    async previewFromMealPlan(from: string, to: string) {
+      const res = await api.post<ShoppingListGenerationLineDto[]>('/shoppinglist/from-mealplan', { from, to, dryRun: true });
+      return res.data;
+    },
+
+    /** Adds the shortages for the range (recalculated by the server) and reloads the list. */
+    async addFromMealPlan(from: string, to: string) {
+      this.error = null
+      try {
+        const res = await api.post<ShoppingListGenerationLineDto[]>('/shoppinglist/from-mealplan', { from, to, dryRun: false });
+        await this.fetchAll()
+        return res.data;
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to add to the shopping list');
+        throw err;
+      }
+    },
+
     async removeItem(id: number) {
       this.error = null
       try {

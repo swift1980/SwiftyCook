@@ -1066,7 +1066,7 @@ keeps one unit per ingredient). Both verified on MariaDB.
 
 ---
 
-## Ticket 24: "Add to Shopping List" from the Meal Planner — Open
+## Ticket 24: "Add to Shopping List" from the Meal Planner — Implemented
 
 **Scope:**
 - Shortage calculation over the visible week (past dates excluded): needed
@@ -1084,6 +1084,8 @@ keeps one unit per ingredient). Both verified on MariaDB.
   to mark generated lines.
 
 **Order:** Depends on Tickets 11, 17, 18, 21, 22.
+
+**Resolution:** Implemented. `MealPlanShoppingService` plus `POST api/shoppinglist/from-mealplan` (`dryRun` previews; the shortage is always recalculated server-side). Needed amounts = servings / recipe yield, summed within comparable units (Ticket 21), minus the Cupboard and existing shopping rows; staples, past dates, and unknown-amount Cupboard rows (which do not cover an amount) are handled as scoped. A no-amount line is listed only if the ingredient is in neither the Cupboard nor the list. Incomparable-unit stock adds the full amount, marked in `ShoppingList.Source` ("Meal plan - check cupboard (unit mismatch)"; plain generated rows use "Meal plan"). New nullable `Source` column (`upgrade/ticket-24-shopping-source.sql`, rollback `ticket-24-down.sql`, verified re-runnable on MariaDB 11.4). UI: "Add to shopping list" on the planner with a preview dialog; source shown on the Shopping List. Notes: generated rows are added as new rows (existing rows are never changed); "today" is server UTC; made entries are not excluded (see "Later").
 
 **Later (not yet ticketed):** per-item partial purchase; Cupboard deduction
 from the cook log (Ticket 20); excluding made entries from shortages;

@@ -84,6 +84,7 @@ namespace SwiftCookDb
             modelBuilder.Entity<RecipeIngredient>().Property(r => r.Note).HasMaxLength(255);
             modelBuilder.Entity<Cupboard>().Property(c => c.Amount).HasPrecision(12, 4);
             modelBuilder.Entity<ShoppingList>().Property(s => s.Amount).HasPrecision(12, 4);
+            modelBuilder.Entity<ShoppingList>().Property(s => s.Source).HasMaxLength(100);
             modelBuilder.Entity<Ingredient>()
                 .HasOne(i => i.Type)
                 .WithMany(t => t.Ingredients)

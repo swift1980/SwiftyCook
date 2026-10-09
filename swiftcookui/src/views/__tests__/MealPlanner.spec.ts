@@ -140,4 +140,38 @@ describe('MealPlanner.vue', () => {
     await flushPromises()
     expect(wrapper.find('.entry .made').attributes('disabled')).toBeDefined()
   })
+
+  it('previews shortages for the visible week, flags mismatches and adds on confirm', async () => {
+    const wrapper = setup()
+    await flushPromises()
+    const lines = [
+      { ingredientId: 1, ingredientName: 'Flour', unitId: 10, unitName: 'gram', amount: 500, unitMismatch: true },
+      { ingredientId: 5, ingredientName: 'Salt', unitId: 14, unitName: 'sgl', amount: null, unitMismatch: false },
+    ]
+    mockedApi.post.mockResolvedValue({ data: lines })
+
+    await wrapper.find('.shop-btn').trigger('click')
+    await flushPromises()
+    expect(mockedApi.post).toHaveBeenCalledWith('/shoppinglist/from-mealplan', { from: '2026-10-05', to: '2026-10-11', dryRun: true })
+    const text = wrapper.find('.shop-lines').text()
+    expect(text).toContain('Flour – 500 gram')
+    expect(text).toContain('check cupboard')
+    expect(text).toContain('Salt')
+
+    await wrapper.find('.dialog .confirm').trigger('click')
+    await flushPromises()
+    expect(mockedApi.post).toHaveBeenLastCalledWith('/shoppinglist/from-mealplan', { from: '2026-10-05', to: '2026-10-11', dryRun: false })
+    expect(wrapper.find('.done').text()).toContain('Added 2 items')
+  })
+
+  it('says so when there is nothing to add', async () => {
+    const wrapper = setup()
+    await flushPromises()
+    mockedApi.post.mockResolvedValue({ data: [] })
+
+    await wrapper.find('.shop-btn').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('.dialog').text()).toContain('Nothing to add')
+    expect(wrapper.find('.dialog .confirm').attributes('disabled')).toBeDefined()
+  })
 })
