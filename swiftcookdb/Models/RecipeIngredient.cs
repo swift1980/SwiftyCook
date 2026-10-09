@@ -13,7 +13,7 @@ namespace SwiftCookDb.Models
         public int? UnitId { get; set; }
         public Unit Unit { get; set; } = null!;
 
-        public float? Amount { get; set; }
+        public decimal? Amount { get; set; }
         public int? Position { get; set; }
     }
 }

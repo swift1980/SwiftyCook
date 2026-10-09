@@ -61,7 +61,11 @@ CREATE TABLE Unit (
     Name VARCHAR(50) UNIQUE,
 	PluralName VARCHAR(50),
 	Description VARCHAR(50),
-	Abbreviation VARCHAR(5)
+	Abbreviation VARCHAR(5),
+	-- Ticket 21: conversion data. Only Mass/Volume convert, within their dimension,
+	-- via ToBaseFactor (base: gram / millilitre). Count/Other units have no factor.
+	Dimension VARCHAR(10) NOT NULL DEFAULT 'Other',
+	ToBaseFactor DECIMAL(18,6) NULL
 );
 -- RECIPE
 CREATE TABLE Recipe (
@@ -113,7 +117,7 @@ CREATE TABLE RecipeTool (
 CREATE TABLE RecipeIngredient (
     RecipeId int NOT NULL,
     IngredientId int NOT NULL,
-    Amount FLOAT,
+    Amount DECIMAL(12,4),
 	UnitId int NULL,
     Position int,
 	UNIQUE KEY uq_recipeingredient (RecipeId, IngredientId, UnitId),
@@ -157,7 +161,7 @@ CREATE TABLE ShoppingList (
     Id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
     IngredientId int NOT NULL,
 	UnitId int NOT NULL,
-    Amount FLOAT,
+    Amount DECIMAL(12,4),
     CONSTRAINT FK_ShoppingList_IngredientId FOREIGN KEY (IngredientId) REFERENCES Ingredient(Id) ON DELETE CASCADE,
     CONSTRAINT FK_ShoppingList_UnitId FOREIGN KEY (UnitId) REFERENCES Unit(Id) ON DELETE CASCADE
 );
@@ -165,7 +169,7 @@ CREATE TABLE ShoppingList (
 CREATE TABLE Cupboard (
     IngredientId int NOT NULL PRIMARY KEY,
 	UnitId int NOT NULL,
-    Amount FLOAT,
+    Amount DECIMAL(12,4),
 	CONSTRAINT FK_Cupboard_IngredientId FOREIGN KEY (IngredientId) REFERENCES Ingredient(Id) ON DELETE CASCADE,
     CONSTRAINT FK_Cupboard_UnitId FOREIGN KEY (UnitId) REFERENCES Unit(Id) ON DELETE CASCADE
 );

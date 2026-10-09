@@ -70,7 +70,7 @@ INSERT INTO RecipeIngredient (RecipeId, IngredientId, Amount, UnitId, Position)
 VALUES
 ((SELECT Id FROM Recipe WHERE Name = 'Old Fashioned'),
  (SELECT Id FROM Ingredient WHERE Name = 'Bourbon'),
- 2.0, (SELECT Id FROM Unit WHERE Name = 'ounce'), 1),
+ 2.0, (SELECT Id FROM Unit WHERE Name = 'fluid ounce'), 1),
 
 ((SELECT Id FROM Recipe WHERE Name = 'Old Fashioned'),
  (SELECT Id FROM Ingredient WHERE Name = 'Sugar cube'),
@@ -89,19 +89,19 @@ VALUES
 ((SELECT Id FROM Recipe WHERE Name = 'Margarita'),
  (SELECT Id FROM Ingredient WHERE Name = 'Tequila'),
  1.5,
- (SELECT Id FROM Unit WHERE Name = 'ounce'),
+ (SELECT Id FROM Unit WHERE Name = 'fluid ounce'),
  1),
 
 ((SELECT Id FROM Recipe WHERE Name = 'Margarita'),
  (SELECT Id FROM Ingredient WHERE Name = 'Triple sec'),
  0.5,
- (SELECT Id FROM Unit WHERE Name = 'ounce'),
+ (SELECT Id FROM Unit WHERE Name = 'fluid ounce'),
  2),
 
 ((SELECT Id FROM Recipe WHERE Name = 'Margarita'),
  (SELECT Id FROM Ingredient WHERE Name = 'Lime juice'),
  1.0,
- (SELECT Id FROM Unit WHERE Name = 'ounce'),
+ (SELECT Id FROM Unit WHERE Name = 'fluid ounce'),
  3),
 
 ((SELECT Id FROM Recipe WHERE Name = 'Margarita'),
@@ -114,11 +114,11 @@ INSERT INTO RecipeIngredient (RecipeId, IngredientId, Amount, UnitId, Position)
 VALUES
 ((SELECT Id FROM Recipe WHERE Name = 'Mojito'),
  (SELECT Id FROM Ingredient WHERE Name = 'White rum'),
- 2.0, (SELECT Id FROM Unit WHERE Name = 'ounce'), 1),
+ 2.0, (SELECT Id FROM Unit WHERE Name = 'fluid ounce'), 1),
 
 ((SELECT Id FROM Recipe WHERE Name = 'Mojito'),
  (SELECT Id FROM Ingredient WHERE Name = 'Lime juice'),
- 1.0, (SELECT Id FROM Unit WHERE Name = 'ounce'), 2),
+ 1.0, (SELECT Id FROM Unit WHERE Name = 'fluid ounce'), 2),
 
 ((SELECT Id FROM Recipe WHERE Name = 'Mojito'),
  (SELECT Id FROM Ingredient WHERE Name = 'Sugar'),
@@ -136,15 +136,15 @@ VALUES
 VALUES
 ((SELECT Id FROM Recipe WHERE Name = 'Negroni'),
  (SELECT Id FROM Ingredient WHERE Name = 'Gin'),
- 1.0, (SELECT Id FROM Unit WHERE Name = 'ounce'), 1),
+ 1.0, (SELECT Id FROM Unit WHERE Name = 'fluid ounce'), 1),
 
 ((SELECT Id FROM Recipe WHERE Name = 'Negroni'),
  (SELECT Id FROM Ingredient WHERE Name = 'Campari'),
- 1.0, (SELECT Id FROM Unit WHERE Name = 'ounce'), 2),
+ 1.0, (SELECT Id FROM Unit WHERE Name = 'fluid ounce'), 2),
 
 ((SELECT Id FROM Recipe WHERE Name = 'Negroni'),
  (SELECT Id FROM Ingredient WHERE Name = 'Sweet vermouth'),
- 1.0, (SELECT Id FROM Unit WHERE Name = 'ounce'), 3),
+ 1.0, (SELECT Id FROM Unit WHERE Name = 'fluid ounce'), 3),
 
 ((SELECT Id FROM Recipe WHERE Name = 'Negroni'),
  (SELECT Id FROM Ingredient WHERE Name = 'Orange slice'),

@@ -44,6 +44,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddScoped<swiftcookapi.Services.IRecipeIngredientSearchService,
     swiftcookapi.Services.RecipeIngredientSearchService>();
+builder.Services.AddSingleton<swiftcookapi.Services.UnitConverter>();
 
 var app = builder.Build();
 

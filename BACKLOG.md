@@ -973,7 +973,7 @@ model, DTO or controller.
 
 ---
 
-## Ticket 21: Unit dimensions and conversion — Open
+## Ticket 21: Unit dimensions and conversion — Implemented
 
 **Problem:** `Unit` has 16 seeded rows with no dimension or conversion data,
 so amounts in different units (200 g vs 0.5 kg) cannot be compared or summed.
@@ -998,6 +998,13 @@ weight and, in cocktails, for liquids). `Amount` is a `float`.
 **Order:** Foundation; blocks Tickets 22, 23, 24. Riskiest ticket (migrates
 seeded reference data, changes a column type) — own PR with rollback.
 Ticket 16's importer must map "oz" and "fl oz" explicitly after the split.
+
+**Resolution:** `Unit.Dimension`/`ToBaseFactor`, `Amount` is `decimal(12,4)`,
+`UnitConverter` service (`CanConvert`, `TryConvert`, `TryAdd`, `Compare`,
+`ToDisplay`) with tests. New units `fluid ounce` (17) and `pint` (18). Existing
+databases: `swiftcookdb/upgrade/ticket-21-units.sql` (rollback:
+`ticket-21-down.sql`), both verified re-runnable on MariaDB. Callers must treat
+a recipe line with no unit as `sgl` (Count). No frontend changes were needed.
 
 ---
 

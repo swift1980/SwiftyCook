@@ -165,7 +165,8 @@ namespace SwiftCook.Importer
                 if (segs.Length < 3) continue;
 
                 string ingredientName = segs[0];
-                float? amount = float.TryParse(segs[1], out var amt) ? amt : null;
+                decimal? amount = decimal.TryParse(segs[1], System.Globalization.NumberStyles.Number,
+                    System.Globalization.CultureInfo.InvariantCulture, out var amt) ? amt : null;
                 string unitName = segs[2];
 
                 // Ensure ingredient exists

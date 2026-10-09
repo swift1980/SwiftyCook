@@ -54,6 +54,13 @@ namespace SwiftCookDb
             modelBuilder.Entity<RecipeIngredient>().HasKey(ri => new { ri.RecipeId, ri.IngredientId, ri.UnitId });
             modelBuilder.Entity<RecipeInstruction>().HasKey(ri => new { ri.RecipeId, ri.Position });
             modelBuilder.Entity<Cupboard>().HasKey(c => c.IngredientId);
+
+            // Stored as text ("Mass") so the column stays readable in SQL.
+            modelBuilder.Entity<Unit>().Property(u => u.Dimension).HasConversion<string>();
+            modelBuilder.Entity<Unit>().Property(u => u.ToBaseFactor).HasPrecision(18, 6);
+            modelBuilder.Entity<RecipeIngredient>().Property(r => r.Amount).HasPrecision(12, 4);
+            modelBuilder.Entity<Cupboard>().Property(c => c.Amount).HasPrecision(12, 4);
+            modelBuilder.Entity<ShoppingList>().Property(s => s.Amount).HasPrecision(12, 4);
             modelBuilder.Entity<Ingredient>()
                 .HasOne(i => i.Type)
                 .WithMany(t => t.Ingredients)
