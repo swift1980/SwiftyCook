@@ -19,6 +19,10 @@ resolution summaries). No open tickets remain.
   and grill-me sessions
 
 **New Tickets To Be Created (2026-10-09):**
+- Revisit Ticket 9
+  - Analysis to implement ingredientType hierarchy layers
+
+**New Tickets To Be Created (2026-10-09):**
 - Create page to CRUD Ingredients, including ingredientType management
   (analysed -> Ticket 11)
 - Amend Optional Ingredient slider to default to all

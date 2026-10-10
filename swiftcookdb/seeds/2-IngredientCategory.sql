@@ -18,5 +18,5 @@ INSERT IGNORE INTO IngredientCategory (Id, Name, ParentCategoryId) VALUES
 (3, 'Dairy', NULL),
 (4, 'Produce', NULL),
 (5, 'Pantry', NULL),
-(6, 'Cocktail', NULL),
+(6, 'Drink', NULL),
 (7, 'Miscellaneous', NULL);
